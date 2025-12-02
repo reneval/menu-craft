@@ -1,0 +1,3 @@
+{
+  "extends": "@menucraft/config-typescript/base.json"
+}

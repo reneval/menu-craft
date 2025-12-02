@@ -1,0 +1,41 @@
+# Dependencies
+node_modules
+**/node_modules
+
+# Build outputs
+dist
+**/dist
+.next
+**/.next
+
+# Development
+.env
+.env.*
+!.env.example
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# Git
+.git
+.gitignore
+
+# Testing
+coverage
+**/coverage
+test-results
+playwright-report
+
+# Docker
+Dockerfile*
+docker-compose*
+.docker
+
+# Misc
+*.md
+*.log
+.DS_Store
+Thumbs.db

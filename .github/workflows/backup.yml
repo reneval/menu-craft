@@ -1,0 +1,129 @@
+name: Database Backup
+
+on:
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      backup_type:
+        description: 'Type of backup'
+        required: true
+        default: 'scheduled'
+        type: choice
+        options:
+          - scheduled
+          - manual
+
+env:
+  BACKUP_RETENTION_DAYS: 30
+
+jobs:
+  backup:
+    name: Create Database Backup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Create backup
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          # Parse DATABASE_URL
+          DB_HOST=$(echo $DATABASE_URL | sed -E 's/.*@([^:]+):.*/\1/')
+          DB_PORT=$(echo $DATABASE_URL | sed -E 's/.*:([0-9]+)\/.*/\1/')
+          DB_NAME=$(echo $DATABASE_URL | sed -E 's/.*\/([^?]+).*/\1/')
+          DB_USER=$(echo $DATABASE_URL | sed -E 's/.*:\/\/([^:]+):.*/\1/')
+          DB_PASS=$(echo $DATABASE_URL | sed -E 's/.*:\/\/[^:]+:([^@]+)@.*/\1/')
+
+          # Create backup
+          BACKUP_FILE="backup-$(date +%Y%m%d-%H%M%S).sql.gz"
+          PGPASSWORD=$DB_PASS pg_dump -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -Fc | gzip > $BACKUP_FILE
+
+          echo "BACKUP_FILE=$BACKUP_FILE" >> $GITHUB_ENV
+          echo "BACKUP_SIZE=$(stat -f%z $BACKUP_FILE 2>/dev/null || stat -c%s $BACKUP_FILE)" >> $GITHUB_ENV
+
+      - name: Upload to S3/R2
+        if: ${{ vars.BACKUP_BUCKET_NAME != '' }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.BACKUP_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ vars.BACKUP_AWS_REGION || 'auto' }}
+          BUCKET_NAME: ${{ vars.BACKUP_BUCKET_NAME }}
+          ENDPOINT_URL: ${{ vars.BACKUP_ENDPOINT_URL }}
+        run: |
+          # Install AWS CLI if using S3
+          if [ -z "$ENDPOINT_URL" ]; then
+            pip install awscli
+            aws s3 cp $BACKUP_FILE s3://$BUCKET_NAME/backups/$BACKUP_FILE
+          else
+            # For Cloudflare R2 or other S3-compatible
+            pip install awscli
+            aws s3 cp $BACKUP_FILE s3://$BUCKET_NAME/backups/$BACKUP_FILE --endpoint-url $ENDPOINT_URL
+          fi
+
+      - name: Upload as artifact (fallback)
+        if: ${{ vars.BACKUP_BUCKET_NAME == '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: database-backup-${{ github.run_id }}
+          path: ${{ env.BACKUP_FILE }}
+          retention-days: ${{ env.BACKUP_RETENTION_DAYS }}
+
+      - name: Cleanup old backups from S3/R2
+        if: ${{ vars.BACKUP_BUCKET_NAME != '' }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.BACKUP_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ vars.BACKUP_AWS_REGION || 'auto' }}
+          BUCKET_NAME: ${{ vars.BACKUP_BUCKET_NAME }}
+          ENDPOINT_URL: ${{ vars.BACKUP_ENDPOINT_URL }}
+        run: |
+          # Delete backups older than retention period
+          CUTOFF_DATE=$(date -d "-$BACKUP_RETENTION_DAYS days" +%Y-%m-%d 2>/dev/null || date -v-${BACKUP_RETENTION_DAYS}d +%Y-%m-%d)
+
+          if [ -z "$ENDPOINT_URL" ]; then
+            aws s3 ls s3://$BUCKET_NAME/backups/ | while read -r line; do
+              FILE_DATE=$(echo $line | awk '{print $1}')
+              FILE_NAME=$(echo $line | awk '{print $4}')
+              if [[ "$FILE_DATE" < "$CUTOFF_DATE" ]]; then
+                aws s3 rm s3://$BUCKET_NAME/backups/$FILE_NAME
+              fi
+            done
+          else
+            aws s3 ls s3://$BUCKET_NAME/backups/ --endpoint-url $ENDPOINT_URL | while read -r line; do
+              FILE_DATE=$(echo $line | awk '{print $1}')
+              FILE_NAME=$(echo $line | awk '{print $4}')
+              if [[ "$FILE_DATE" < "$CUTOFF_DATE" ]]; then
+                aws s3 rm s3://$BUCKET_NAME/backups/$FILE_NAME --endpoint-url $ENDPOINT_URL
+              fi
+            done
+          fi
+
+      - name: Notify on failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Database backup failed - ${new Date().toISOString().split('T')[0]}`,
+              body: `The scheduled database backup failed.\n\nWorkflow run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              labels: ['bug', 'ops']
+            });
+
+      - name: Summary
+        run: |
+          echo "## Backup Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **File**: $BACKUP_FILE" >> $GITHUB_STEP_SUMMARY
+          echo "- **Size**: $(numfmt --to=iec $BACKUP_SIZE 2>/dev/null || echo $BACKUP_SIZE bytes)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Type**: ${{ github.event.inputs.backup_type || 'scheduled' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Retention**: $BACKUP_RETENTION_DAYS days" >> $GITHUB_STEP_SUMMARY

@@ -1,0 +1,17 @@
+{
+  "name": "@menucraft/widget",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "dist/menucraft-widget.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "WIDGET_NAME=iframe vite build && WIDGET_NAME=shadow vite build",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@menucraft/config-typescript": "workspace:*",
+    "typescript": "^5.6.3",
+    "vite": "^6.0.3"
+  }
+}
