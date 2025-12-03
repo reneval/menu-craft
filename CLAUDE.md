@@ -54,8 +54,8 @@ pnpm lint             # Lint all packages
 pnpm typecheck        # Type check all packages
 
 # Docker (manual)
-docker-compose up -d  # Start PostgreSQL + Redis
-docker-compose down   # Stop all services
+docker compose up -d  # Start PostgreSQL + Redis
+docker compose down   # Stop all services
 ```
 
 ## Development Guidelines
@@ -86,7 +86,7 @@ DATABASE_URL=postgres://menucraft:menucraft_dev@localhost:5433/menucraft
 
 ### Database Connection Issues
 - Ensure Docker is running: `docker info`
-- Restart containers: `docker-compose down && docker-compose up -d`
+- Restart containers: `docker compose down && docker compose up -d`
 - Check database status: `docker exec menucraft-db pg_isready -U menucraft -d menucraft`
 
 ### Port Conflicts

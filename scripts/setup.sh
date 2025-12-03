@@ -21,7 +21,7 @@ echo "📦 Installing dependencies..."
 pnpm install
 
 echo "🐳 Starting Docker containers..."
-docker-compose up -d
+docker compose up -d
 
 echo "⏳ Waiting for database to be ready..."
 sleep 10
