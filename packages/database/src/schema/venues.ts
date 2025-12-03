@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, jsonb, uuid, uniqueIndex } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, jsonb, uuid, uniqueIndex, index } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import { organizations } from './organizations';
 
@@ -21,6 +21,10 @@ export const venues = pgTable(
   (table) => [
     uniqueIndex('venues_org_slug_unique')
       .on(table.organizationId, table.slug)
+      .where(sql`${table.deletedAt} IS NULL`),
+    // RLS-optimized indexes - organization_id is already first in unique index above
+    index('venues_org_name_idx')
+      .on(table.organizationId, table.name)
       .where(sql`${table.deletedAt} IS NULL`),
   ]
 );

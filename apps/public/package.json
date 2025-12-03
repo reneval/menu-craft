@@ -1,0 +1,36 @@
+{
+  "name": "@menucraft/public",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "@tanstack/react-router": "^1.83.8",
+    "@tanstack/react-query": "^5.17.1",
+    "@menucraft/shared-types": "workspace:*",
+    "@menucraft/api-client": "workspace:*",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.441.0",
+    "react-helmet-async": "^2.0.4"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^5.4.10",
+    "typescript": "^5.7.2",
+    "@menucraft/config-eslint": "workspace:*",
+    "@menucraft/config-typescript": "workspace:*",
+    "tailwindcss": "^3.4.15",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49"
+  }
+}

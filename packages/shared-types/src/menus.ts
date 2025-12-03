@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { SlugSchema, TimestampSchema } from './common.js';
+import { MenuIdSchema, OrganizationIdSchema, VenueIdSchema } from './branded.js';
 
 export const MenuStatusSchema = z.enum(['draft', 'published', 'archived']);
 export type MenuStatus = z.infer<typeof MenuStatusSchema>;
@@ -27,9 +28,9 @@ export const ThemeConfigSchema = z
 export type ThemeConfig = z.infer<typeof ThemeConfigSchema>;
 
 export const MenuSchema = z.object({
-  id: z.string().uuid(),
-  organizationId: z.string().uuid(),
-  venueId: z.string().uuid(),
+  id: MenuIdSchema,
+  organizationId: OrganizationIdSchema,
+  venueId: VenueIdSchema,
   name: z.string().min(1).max(100),
   slug: SlugSchema,
   status: MenuStatusSchema,

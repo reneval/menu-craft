@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, integer, boolean, jsonb } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, uuid, integer, boolean, jsonb, index } from 'drizzle-orm/pg-core';
 import { priceTypeEnum } from './enums';
 import { organizations } from './organizations';
 import { menuSections } from './menu-sections';
@@ -23,7 +23,15 @@ export const menuItems = pgTable('menu_items', {
   sortOrder: integer('sort_order').notNull().default(0),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => [
+  // RLS-optimized indexes
+  index('menu_items_org_section_sort_idx')
+    .on(table.organizationId, table.sectionId, table.sortOrder),
+  index('menu_items_org_available_idx')
+    .on(table.organizationId, table.isAvailable),
+  index('menu_items_org_price_idx')
+    .on(table.organizationId, table.priceType, table.priceAmount),
+]);
 
 export type MenuItem = typeof menuItems.$inferSelect;
 export type NewMenuItem = typeof menuItems.$inferInsert;

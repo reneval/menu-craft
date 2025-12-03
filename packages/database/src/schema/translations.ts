@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, boolean, jsonb, uniqueIndex } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, uuid, boolean, jsonb, uniqueIndex, index } from 'drizzle-orm/pg-core';
 import { entityTypeEnum } from './enums';
 import { organizations } from './organizations';
 
@@ -23,6 +23,11 @@ export const translations = pgTable(
       table.entityId,
       table.languageCode
     ),
+    // RLS-optimized indexes - organization_id first for efficient filtering
+    index('translations_org_entity_lang_idx')
+      .on(table.organizationId, table.entityType, table.entityId, table.languageCode),
+    index('translations_org_auto_idx')
+      .on(table.organizationId, table.isAutoTranslated),
   ]
 );
 

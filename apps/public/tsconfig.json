@@ -1,0 +1,10 @@
+{
+  "extends": "@menucraft/config-typescript/react.json",
+  "include": ["src/**/*", "vite.config.ts"],
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  }
+}

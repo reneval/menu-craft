@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { SlugSchema, TimestampSchema } from './common.js';
+import { OrganizationIdSchema } from './branded.js';
 
 export const OrganizationSettingsSchema = z
   .object({
@@ -12,7 +13,7 @@ export const OrganizationSettingsSchema = z
 export type OrganizationSettings = z.infer<typeof OrganizationSettingsSchema>;
 
 export const OrganizationSchema = z.object({
-  id: z.string().uuid(),
+  id: OrganizationIdSchema,
   name: z.string().min(1).max(100),
   slug: SlugSchema,
   stripeCustomerId: z.string().nullable(),

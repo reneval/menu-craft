@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, integer, boolean, time, date } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, uuid, integer, boolean, time, date, index } from 'drizzle-orm/pg-core';
 import { scheduleTypeEnum } from './enums';
 import { organizations } from './organizations';
 import { menus } from './menus';
@@ -21,7 +21,13 @@ export const menuSchedules = pgTable('menu_schedules', {
   isActive: boolean('is_active').notNull().default(true),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => [
+  // RLS-optimized indexes - organization_id first for efficient filtering
+  index('menu_schedules_org_menu_priority_idx')
+    .on(table.organizationId, table.menuId, table.priority, table.isActive),
+  index('menu_schedules_org_active_type_idx')
+    .on(table.organizationId, table.isActive, table.scheduleType),
+]);
 
 export type MenuSchedule = typeof menuSchedules.$inferSelect;
 export type NewMenuSchedule = typeof menuSchedules.$inferInsert;

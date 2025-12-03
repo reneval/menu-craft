@@ -6,20 +6,32 @@ import {
 } from '@menucraft/shared-types';
 import { validate } from '../../utils/validation.js';
 import { NotFoundError } from '../../utils/errors.js';
+import { requireAuth, requireOrgContext } from '../../plugins/auth.js';
 
 export async function organizationRoutes(app: FastifyInstance) {
   // List organizations for current user
-  app.get('/', async (request) => {
-    // TODO: Get user from auth
-    const orgs = await db.query.organizations.findMany({
-      where: isNull(organizations.deletedAt),
+  app.get('/', { preHandler: requireAuth }, async (request) => {
+    const userId = request.auth!.userId;
+
+    // Get organizations where user is a member
+    const memberOrgs = await db.query.organizationUsers.findMany({
+      where: and(
+        eq(organizationUsers.userId, userId),
+        isNull(organizationUsers.deletedAt)
+      ),
+      with: {
+        organization: true,
+      },
     });
+
+    const orgs = memberOrgs.map(m => m.organization).filter(org => !org.deletedAt);
 
     return { success: true, data: orgs };
   });
 
   // Create organization
-  app.post('/', async (request) => {
+  app.post('/', { preHandler: requireAuth }, async (request) => {
+    const userId = request.auth!.userId;
     const body = validate(CreateOrganizationSchema, request.body);
 
     const slug = body.slug || body.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
@@ -32,16 +44,26 @@ export async function organizationRoutes(app: FastifyInstance) {
       })
       .returning();
 
+    // Add the creator as owner
+    await db
+      .insert(organizationUsers)
+      .values({
+        organizationId: org.id,
+        userId,
+        role: 'owner',
+      });
+
     return { success: true, data: org };
   });
 
   // Get organization by ID
-  app.get('/:orgId', async (request) => {
-    const { orgId } = request.params as { orgId: string };
+  app.get('/:orgId', { preHandler: requireOrgContext }, async (request) => {
+    const { organizationId } = request.tenantContext!;
 
+    // Since RLS is active, we can query directly - RLS will filter to this org
     const org = await db.query.organizations.findFirst({
       where: and(
-        eq(organizations.id, orgId),
+        eq(organizations.id, organizationId),
         isNull(organizations.deletedAt)
       ),
     });
@@ -54,8 +76,8 @@ export async function organizationRoutes(app: FastifyInstance) {
   });
 
   // Update organization
-  app.patch('/:orgId', async (request) => {
-    const { orgId } = request.params as { orgId: string };
+  app.patch('/:orgId', { preHandler: requireOrgContext }, async (request) => {
+    const { organizationId } = request.tenantContext!;
     const body = validate(UpdateOrganizationSchema, request.body);
 
     const [org] = await db
@@ -65,7 +87,7 @@ export async function organizationRoutes(app: FastifyInstance) {
         updatedAt: new Date(),
       })
       .where(and(
-        eq(organizations.id, orgId),
+        eq(organizations.id, organizationId),
         isNull(organizations.deletedAt)
       ))
       .returning();
@@ -78,12 +100,13 @@ export async function organizationRoutes(app: FastifyInstance) {
   });
 
   // Get organization members
-  app.get('/:orgId/members', async (request) => {
-    const { orgId } = request.params as { orgId: string };
+  app.get('/:orgId/members', { preHandler: requireOrgContext }, async (request) => {
+    const { organizationId } = request.tenantContext!;
 
+    // RLS will automatically filter to this organization
     const members = await db.query.organizationUsers.findMany({
       where: and(
-        eq(organizationUsers.organizationId, orgId),
+        eq(organizationUsers.organizationId, organizationId),
         isNull(organizationUsers.deletedAt)
       ),
       with: {

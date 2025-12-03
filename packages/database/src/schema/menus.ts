@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, jsonb, uuid, integer, uniqueIndex } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, jsonb, uuid, integer, uniqueIndex, index } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import { menuStatusEnum } from './enums';
 import { organizations } from './organizations';
@@ -28,6 +28,13 @@ export const menus = pgTable(
   (table) => [
     uniqueIndex('menus_venue_slug_unique')
       .on(table.venueId, table.slug)
+      .where(sql`${table.deletedAt} IS NULL`),
+    // RLS-optimized indexes - organization_id first for efficient filtering
+    index('menus_org_venue_sort_idx')
+      .on(table.organizationId, table.venueId, table.sortOrder)
+      .where(sql`${table.deletedAt} IS NULL`),
+    index('menus_org_status_idx')
+      .on(table.organizationId, table.status)
       .where(sql`${table.deletedAt} IS NULL`),
   ]
 );

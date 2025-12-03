@@ -8,10 +8,12 @@ import { sectionRoutes } from './sections.js';
 import { itemRoutes } from './items.js';
 import { scheduleRoutes } from './schedules.js';
 import { translationRoutes } from './translations.js';
+import { autoTranslateRoutes } from './auto-translate.js';
 import { importRoutes } from './import.js';
 import { versionRoutes } from './versions.js';
 import { analyticsRoutes } from './analytics.js';
 import { activityRoutes } from './activity.js';
+import { pdfExportRoutes } from './pdf-export.js';
 import { canCreateMenu } from '../../lib/billing.js';
 import { emitMenuCreated, emitMenuUpdated, emitMenuPublished, emitMenuDeleted } from '../../lib/webhooks.js';
 import { createMenuVersion } from '../../lib/menu-versions.js';
@@ -27,10 +29,12 @@ export async function menuRoutes(app: FastifyInstance) {
   );
   await app.register(scheduleRoutes, { prefix: '/:menuId/schedules' });
   await app.register(translationRoutes, { prefix: '/:menuId/translations' });
+  await app.register(autoTranslateRoutes, { prefix: '/:menuId/auto-translate' });
   await app.register(importRoutes, { prefix: '/:menuId/import' });
   await app.register(versionRoutes, { prefix: '/:menuId/versions' });
   await app.register(analyticsRoutes, { prefix: '/:menuId/analytics' });
   await app.register(activityRoutes, { prefix: '/:menuId/activity' });
+  await app.register(pdfExportRoutes);
 
   // List menus for venue
   app.get('/', async (request) => {

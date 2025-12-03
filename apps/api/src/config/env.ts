@@ -16,6 +16,9 @@ const envSchema = z.object({
   R2_BUCKET_NAME: z.string().optional(),
   R2_PUBLIC_URL: z.string().optional(),
   DEEPL_API_KEY: z.string().optional(),
+  // Redis
+  REDIS_URL: z.string().optional(),
+  REDIS_KEY_PREFIX: z.string().default('menucraft'),
   API_URL: z.string().default('http://localhost:3000'),
   WEB_URL: z.string().default('http://localhost:5173'),
   PUBLIC_URL: z.string().default('http://localhost:5174'),

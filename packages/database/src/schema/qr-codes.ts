@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, integer } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, uuid, integer, jsonb } from 'drizzle-orm/pg-core';
 import { qrTargetTypeEnum } from './enums';
 import { organizations } from './organizations';
 
@@ -9,10 +9,13 @@ export const qrCodes = pgTable('qr_codes', {
     .references(() => organizations.id),
   targetType: qrTargetTypeEnum('target_type').notNull(),
   targetId: uuid('target_id').notNull(),
+  name: text('name').notNull(),
   code: text('code').unique().notNull(),
+  options: jsonb('options').notNull().default('{}'),
   scanCount: integer('scan_count').notNull().default(0),
   lastScannedAt: timestamp('last_scanned_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
 export type QrCode = typeof qrCodes.$inferSelect;

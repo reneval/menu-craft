@@ -5,13 +5,22 @@ startTelemetry();
 import 'dotenv/config';
 import { buildApp } from './app.js';
 import { env } from './config/env.js';
+import { redisCache } from './lib/redis-cache.js';
 
 async function main() {
   const app = await buildApp();
 
+  // Initialize Redis connection
+  try {
+    await redisCache.connect();
+  } catch (error) {
+    console.warn('Redis initialization failed, caching will be disabled:', error);
+  }
+
   // Graceful shutdown
   const shutdown = async (signal: string) => {
     console.log(`\n${signal} received, shutting down gracefully...`);
+    await redisCache.disconnect();
     await app.close();
     await stopTelemetry();
     process.exit(0);

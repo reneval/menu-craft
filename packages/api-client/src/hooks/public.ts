@@ -1,6 +1,15 @@
 import { useQuery } from '@tanstack/react-query';
 import type { Venue, Menu, MenuSection, MenuItem, MenuItemOption } from '@menucraft/shared-types';
-import { getApiClient } from '../client.js';
+
+// Type declaration for import.meta.env
+declare global {
+  interface ImportMeta {
+    env: {
+      VITE_API_URL?: string;
+      [key: string]: any;
+    };
+  }
+}
 
 // Extended types for public API responses
 export interface PublicMenuItemWithOptions extends MenuItem {
@@ -45,8 +54,19 @@ export function usePublicVenue(venueSlug: string) {
   return useQuery({
     queryKey: publicKeys.venue(venueSlug),
     queryFn: async () => {
-      const client = getApiClient();
-      return client.get<Venue>(`/public/v/${venueSlug}`);
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const response = await fetch(`${baseUrl}/public/v/${venueSlug}`);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error(data.error?.message || 'Unknown error');
+      }
+
+      return data.data;
     },
     enabled: !!venueSlug,
   });
@@ -56,11 +76,23 @@ export function usePublicMenu(venueSlug: string, lang?: string) {
   return useQuery({
     queryKey: publicKeys.menu(venueSlug, lang),
     queryFn: async () => {
-      const client = getApiClient();
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
       const url = lang
-        ? `/public/v/${venueSlug}/menu?lang=${lang}`
-        : `/public/v/${venueSlug}/menu`;
-      return client.get<PublicMenuData>(url);
+        ? `${baseUrl}/public/v/${venueSlug}/menu?lang=${lang}`
+        : `${baseUrl}/public/v/${venueSlug}/menu`;
+
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error(data.error?.message || 'Unknown error');
+      }
+
+      return data.data;
     },
     enabled: !!venueSlug,
   });
@@ -70,8 +102,19 @@ export function usePublicMenuByDomain(domain: string) {
   return useQuery({
     queryKey: publicKeys.domain(domain),
     queryFn: async () => {
-      const client = getApiClient();
-      return client.get<PublicMenuByDomainData>(`/public/d/${domain}`);
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const response = await fetch(`${baseUrl}/public/d/${domain}`);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error(data.error?.message || 'Unknown error');
+      }
+
+      return data.data;
     },
     enabled: !!domain,
   });

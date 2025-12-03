@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { SlugSchema, TimestampSchema } from './common.js';
+import { VenueIdSchema, OrganizationIdSchema } from './branded.js';
 
 export const AddressSchema = z
   .object({
@@ -14,8 +15,8 @@ export const AddressSchema = z
 export type Address = z.infer<typeof AddressSchema>;
 
 export const VenueSchema = z.object({
-  id: z.string().uuid(),
-  organizationId: z.string().uuid(),
+  id: VenueIdSchema,
+  organizationId: OrganizationIdSchema,
   name: z.string().min(1).max(100),
   slug: SlugSchema,
   timezone: z.string().default('UTC'),

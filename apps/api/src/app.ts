@@ -8,6 +8,7 @@ import { registerCors } from './plugins/cors.js';
 import { registerSwagger } from './plugins/swagger.js';
 import { registerErrorHandler } from './plugins/error-handler.js';
 import tenancyPlugin from './plugins/tenancy.js';
+import authPlugin from './plugins/auth.js';
 import auditPlugin from './plugins/audit.js';
 import { registerRoutes } from './routes/index.js';
 
@@ -28,6 +29,7 @@ export async function buildApp() {
   await registerCors(app);
   await registerSwagger(app);
   await app.register(tenancyPlugin);
+  await app.register(authPlugin);
   await app.register(auditPlugin);
   registerErrorHandler(app);
 

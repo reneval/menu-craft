@@ -4,6 +4,9 @@ export * from './branded.js';
 // Common types
 export * from './common.js';
 
+// Request validation
+export * from './request-validation.js';
+
 // Domain types
 export * from './organizations.js';
 export * from './users.js';

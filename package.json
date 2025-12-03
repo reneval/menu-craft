@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "setup": "scripts/setup.sh",
     "dev": "turbo dev",
     "build": "turbo build",
     "lint": "turbo lint",
@@ -13,6 +14,7 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "db:generate": "turbo db:generate",
     "db:push": "turbo db:push",
+    "db:setup": "scripts/db-setup.sh",
     "db:studio": "pnpm --filter @menucraft/database db:studio",
     "clean": "turbo clean && rm -rf node_modules"
   },
