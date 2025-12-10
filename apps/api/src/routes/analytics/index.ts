@@ -22,6 +22,65 @@ interface QrCodeStats {
   lastScannedAt: string | null;
 }
 
+interface CountryStats {
+  country: string;
+  countryName: string;
+  count: number;
+}
+
+interface LanguageStats {
+  language: string;
+  count: number;
+}
+
+// Country names for display
+const COUNTRY_NAMES: Record<string, string> = {
+  US: 'United States',
+  GB: 'United Kingdom',
+  DE: 'Germany',
+  FR: 'France',
+  ES: 'Spain',
+  IT: 'Italy',
+  NL: 'Netherlands',
+  BE: 'Belgium',
+  AT: 'Austria',
+  CH: 'Switzerland',
+  PT: 'Portugal',
+  GR: 'Greece',
+  PL: 'Poland',
+  CZ: 'Czech Republic',
+  SE: 'Sweden',
+  NO: 'Norway',
+  DK: 'Denmark',
+  FI: 'Finland',
+  IE: 'Ireland',
+  CA: 'Canada',
+  AU: 'Australia',
+  NZ: 'New Zealand',
+  JP: 'Japan',
+  KR: 'South Korea',
+  CN: 'China',
+  IN: 'India',
+  BR: 'Brazil',
+  MX: 'Mexico',
+  AR: 'Argentina',
+  RU: 'Russia',
+  UA: 'Ukraine',
+  TR: 'Turkey',
+  IL: 'Israel',
+  AE: 'United Arab Emirates',
+  SA: 'Saudi Arabia',
+  ZA: 'South Africa',
+  SG: 'Singapore',
+  MY: 'Malaysia',
+  TH: 'Thailand',
+  VN: 'Vietnam',
+  PH: 'Philippines',
+  ID: 'Indonesia',
+  HK: 'Hong Kong',
+  TW: 'Taiwan',
+};
+
 function parseUserAgents(userAgents: (string | null)[]): { devices: DeviceStats[]; browsers: BrowserStats[] } {
   const deviceCounts: Record<string, number> = {};
   const browserCounts: Record<string, number> = {};
@@ -201,6 +260,51 @@ export async function analyticsRoutes(app: FastifyInstance) {
 
     const { devices, browsers } = parseUserAgents(userAgentsResult.map(r => r.userAgent));
 
+    // Views by country in range
+    const viewsByCountry = await db
+      .select({
+        country: menuViews.country,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(menuViews)
+      .where(and(
+        eq(menuViews.venueId, venueId),
+        gte(menuViews.viewedAt, rangeStart),
+        lte(menuViews.viewedAt, rangeEnd),
+        sql`${menuViews.country} IS NOT NULL`
+      ))
+      .groupBy(menuViews.country)
+      .orderBy(desc(sql`count(*)`))
+      .limit(20);
+
+    const countryStats: CountryStats[] = viewsByCountry.map(c => ({
+      country: c.country!,
+      countryName: COUNTRY_NAMES[c.country!] || c.country!,
+      count: c.count,
+    }));
+
+    // Views by language in range
+    const viewsByLanguage = await db
+      .select({
+        language: menuViews.language,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(menuViews)
+      .where(and(
+        eq(menuViews.venueId, venueId),
+        gte(menuViews.viewedAt, rangeStart),
+        lte(menuViews.viewedAt, rangeEnd),
+        sql`${menuViews.language} IS NOT NULL`
+      ))
+      .groupBy(menuViews.language)
+      .orderBy(desc(sql`count(*)`))
+      .limit(20);
+
+    const languageStats: LanguageStats[] = viewsByLanguage.map(l => ({
+      language: l.language!,
+      count: l.count,
+    }));
+
     // Get all menus for this venue
     const venueMenus = await db.query.menus.findMany({
       where: and(
@@ -262,6 +366,10 @@ export async function analyticsRoutes(app: FastifyInstance) {
         deviceBreakdown: {
           devices,
           browsers,
+        },
+        geographicBreakdown: {
+          countries: countryStats,
+          languages: languageStats,
         },
         qrCodes: qrCodeStats,
         dateRange: {

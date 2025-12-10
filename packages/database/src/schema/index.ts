@@ -24,6 +24,7 @@ export * from './backups';
 export * from './emails';
 export * from './webhooks';
 export * from './menu-versions';
+export * from './referrals';
 
 // Relations
 export * from './relations';

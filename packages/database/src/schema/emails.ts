@@ -23,6 +23,18 @@ export const emailTypeEnum = pgEnum('email_type', [
   'usage_alert',
   'team_invitation',
   'general',
+  // Trial lifecycle
+  'trial_started',
+  'trial_ending_7d',
+  'trial_ending_3d',
+  'trial_ending_1d',
+  'trial_expired',
+  // Inactivity
+  'inactivity_7d',
+  'inactivity_14d',
+  // Referrals
+  'referral_signup',
+  'referral_reward',
 ]);
 
 export const emailLogs = pgTable('email_logs', {

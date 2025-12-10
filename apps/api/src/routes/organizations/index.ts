@@ -44,6 +44,10 @@ export async function organizationRoutes(app: FastifyInstance) {
       })
       .returning();
 
+    if (!org) {
+      throw new Error('Failed to create organization');
+    }
+
     // Add the creator as owner
     await db
       .insert(organizationUsers)

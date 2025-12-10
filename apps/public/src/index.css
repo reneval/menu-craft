@@ -49,6 +49,25 @@
     @apply text-lg text-gray-600 font-medium;
   }
 
+  /* Venue action buttons (Call/Directions) */
+  .venue-actions {
+    @apply flex justify-center gap-3 mt-4;
+  }
+
+  .action-button {
+    @apply inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200;
+    @apply bg-gray-100 text-gray-700 hover:bg-gray-200;
+    @apply focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500;
+  }
+
+  .action-button--call {
+    @apply bg-green-100 text-green-700 hover:bg-green-200;
+  }
+
+  .action-button--directions {
+    @apply bg-blue-100 text-blue-700 hover:bg-blue-200;
+  }
+
   /* Language selector */
   .language-selector {
     @apply fixed top-4 right-4 z-10;
@@ -81,7 +100,7 @@
   }
 
   .menu-item {
-    @apply group cursor-pointer transition-all duration-200;
+    @apply cursor-pointer transition-all duration-200;
   }
 
   .menu-item:hover {
@@ -93,7 +112,11 @@
   }
 
   .item-image {
-    @apply flex-shrink-0 w-20 h-20 rounded-lg object-cover shadow-sm group-hover:shadow-md transition-shadow;
+    @apply flex-shrink-0 w-20 h-20 rounded-lg object-cover shadow-sm transition-shadow;
+  }
+
+  .menu-item:hover .item-image {
+    @apply shadow-md;
   }
 
   .item-details {

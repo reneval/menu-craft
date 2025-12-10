@@ -16,6 +16,10 @@ export const menuViews = pgTable(
     sessionId: text('session_id'), // Optional session identifier
     userAgent: text('user_agent'),
     referrer: text('referrer'),
+    // Geographic data (from GeoIP lookup)
+    country: text('country'), // ISO country code (e.g., "US", "DE")
+    city: text('city'),
+    language: text('language'), // Browser language used
     // Timestamp
     viewedAt: timestamp('viewed_at', { withTimezone: true }).notNull().defaultNow(),
   },

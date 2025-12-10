@@ -62,6 +62,49 @@ export class QRCodeService {
     return qrBuffer
   }
 
+  /**
+   * Generate QR code as SVG string
+   * Note: Logo embedding is not supported in SVG format
+   */
+  async generateQRCodeSVG(url: string, options: QRCodeOptions = {}): Promise<string> {
+    const cacheKey = `qr-svg:${Buffer.from(url + JSON.stringify(options)).toString('base64')}`
+
+    try {
+      const cached = await this.cache.get<string>(cacheKey)
+      if (cached) {
+        return cached
+      }
+    } catch (error) {
+      console.warn('Failed to retrieve QR SVG from cache:', error)
+    }
+
+    const {
+      size = 400,
+      errorCorrectionLevel = 'M',
+      margin = 4,
+      color = { dark: '#000000', light: '#ffffff' }
+    } = options
+
+    const svgString = await QRCode.toString(url, {
+      type: 'svg',
+      width: size,
+      errorCorrectionLevel,
+      margin,
+      color
+    })
+
+    try {
+      await this.cache.set(cacheKey, svgString, {
+        ttl: 86400,
+        namespace: 'qr'
+      })
+    } catch (error) {
+      console.warn('Failed to cache QR SVG:', error)
+    }
+
+    return svgString
+  }
+
   private async createQRCode(url: string, options: QRCodeOptions): Promise<Buffer> {
     const {
       size = 400,

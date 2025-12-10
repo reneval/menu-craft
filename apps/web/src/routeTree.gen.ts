@@ -17,6 +17,7 @@ import { Route as DashboardAnalyticsRouteImport } from './routes/_dashboard/anal
 import { Route as DashboardVenuesIndexRouteImport } from './routes/_dashboard/venues/index'
 import { Route as DashboardSettingsIndexRouteImport } from './routes/_dashboard/settings/index'
 import { Route as DashboardQrCodesIndexRouteImport } from './routes/_dashboard/qr-codes/index'
+import { Route as DashboardProfileIndexRouteImport } from './routes/_dashboard/profile/index'
 import { Route as DashboardMenusIndexRouteImport } from './routes/_dashboard/menus/index'
 import { Route as DashboardVenuesNewRouteImport } from './routes/_dashboard/venues/new'
 import { Route as DashboardVenuesVenueIdRouteImport } from './routes/_dashboard/venues/$venueId'
@@ -63,6 +64,11 @@ const DashboardQrCodesIndexRoute = DashboardQrCodesIndexRouteImport.update({
   path: '/qr-codes/',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardProfileIndexRoute = DashboardProfileIndexRouteImport.update({
+  id: '/profile/',
+  path: '/profile/',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const DashboardMenusIndexRoute = DashboardMenusIndexRouteImport.update({
   id: '/menus/',
   path: '/menus/',
@@ -105,6 +111,7 @@ export interface FileRoutesByFullPath {
   '/venues/$venueId': typeof DashboardVenuesVenueIdRoute
   '/venues/new': typeof DashboardVenuesNewRoute
   '/menus': typeof DashboardMenusIndexRoute
+  '/profile': typeof DashboardProfileIndexRoute
   '/qr-codes': typeof DashboardQrCodesIndexRoute
   '/settings': typeof DashboardSettingsIndexRoute
   '/venues': typeof DashboardVenuesIndexRoute
@@ -120,6 +127,7 @@ export interface FileRoutesByTo {
   '/venues/$venueId': typeof DashboardVenuesVenueIdRoute
   '/venues/new': typeof DashboardVenuesNewRoute
   '/menus': typeof DashboardMenusIndexRoute
+  '/profile': typeof DashboardProfileIndexRoute
   '/qr-codes': typeof DashboardQrCodesIndexRoute
   '/settings': typeof DashboardSettingsIndexRoute
   '/venues': typeof DashboardVenuesIndexRoute
@@ -137,6 +145,7 @@ export interface FileRoutesById {
   '/_dashboard/venues/$venueId': typeof DashboardVenuesVenueIdRoute
   '/_dashboard/venues/new': typeof DashboardVenuesNewRoute
   '/_dashboard/menus/': typeof DashboardMenusIndexRoute
+  '/_dashboard/profile/': typeof DashboardProfileIndexRoute
   '/_dashboard/qr-codes/': typeof DashboardQrCodesIndexRoute
   '/_dashboard/settings/': typeof DashboardSettingsIndexRoute
   '/_dashboard/venues/': typeof DashboardVenuesIndexRoute
@@ -154,6 +163,7 @@ export interface FileRouteTypes {
     | '/venues/$venueId'
     | '/venues/new'
     | '/menus'
+    | '/profile'
     | '/qr-codes'
     | '/settings'
     | '/venues'
@@ -169,6 +179,7 @@ export interface FileRouteTypes {
     | '/venues/$venueId'
     | '/venues/new'
     | '/menus'
+    | '/profile'
     | '/qr-codes'
     | '/settings'
     | '/venues'
@@ -185,6 +196,7 @@ export interface FileRouteTypes {
     | '/_dashboard/venues/$venueId'
     | '/_dashboard/venues/new'
     | '/_dashboard/menus/'
+    | '/_dashboard/profile/'
     | '/_dashboard/qr-codes/'
     | '/_dashboard/settings/'
     | '/_dashboard/venues/'
@@ -256,6 +268,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardQrCodesIndexRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/_dashboard/profile/': {
+      id: '/_dashboard/profile/'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof DashboardProfileIndexRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/_dashboard/menus/': {
       id: '/_dashboard/menus/'
       path: '/menus'
@@ -308,6 +327,7 @@ interface DashboardRouteChildren {
   DashboardVenuesVenueIdRoute: typeof DashboardVenuesVenueIdRoute
   DashboardVenuesNewRoute: typeof DashboardVenuesNewRoute
   DashboardMenusIndexRoute: typeof DashboardMenusIndexRoute
+  DashboardProfileIndexRoute: typeof DashboardProfileIndexRoute
   DashboardQrCodesIndexRoute: typeof DashboardQrCodesIndexRoute
   DashboardSettingsIndexRoute: typeof DashboardSettingsIndexRoute
   DashboardVenuesIndexRoute: typeof DashboardVenuesIndexRoute
@@ -322,6 +342,7 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardVenuesVenueIdRoute: DashboardVenuesVenueIdRoute,
   DashboardVenuesNewRoute: DashboardVenuesNewRoute,
   DashboardMenusIndexRoute: DashboardMenusIndexRoute,
+  DashboardProfileIndexRoute: DashboardProfileIndexRoute,
   DashboardQrCodesIndexRoute: DashboardQrCodesIndexRoute,
   DashboardSettingsIndexRoute: DashboardSettingsIndexRoute,
   DashboardVenuesIndexRoute: DashboardVenuesIndexRoute,

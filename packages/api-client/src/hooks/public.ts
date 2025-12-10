@@ -1,16 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import type { Venue, Menu, MenuSection, MenuItem, MenuItemOption } from '@menucraft/shared-types';
 
-// Type declaration for import.meta.env
-declare global {
-  interface ImportMeta {
-    env: {
-      VITE_API_URL?: string;
-      [key: string]: any;
-    };
-  }
-}
-
 // Extended types for public API responses
 export interface PublicMenuItemWithOptions extends MenuItem {
   options: MenuItemOption[];
@@ -73,9 +63,9 @@ export function usePublicVenue(venueSlug: string) {
 }
 
 export function usePublicMenu(venueSlug: string, lang?: string) {
-  return useQuery({
+  return useQuery<PublicMenuData>({
     queryKey: publicKeys.menu(venueSlug, lang),
-    queryFn: async () => {
+    queryFn: async (): Promise<PublicMenuData> => {
       const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
       const url = lang
         ? `${baseUrl}/public/v/${venueSlug}/menu?lang=${lang}`
@@ -92,7 +82,7 @@ export function usePublicMenu(venueSlug: string, lang?: string) {
         throw new Error(data.error?.message || 'Unknown error');
       }
 
-      return data.data;
+      return data.data as PublicMenuData;
     },
     enabled: !!venueSlug,
   });

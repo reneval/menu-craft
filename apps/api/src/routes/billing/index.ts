@@ -58,6 +58,82 @@ export async function billingRoutes(app: FastifyInstance) {
     return { success: true, data: subscription };
   });
 
+  // Get organization's trial status
+  app.get('/trial-status', async (request) => {
+    const { orgId } = request.params as { orgId: string };
+
+    const org = await db.query.organizations.findFirst({
+      where: eq(organizations.id, orgId),
+    });
+
+    if (!org) {
+      throw new NotFoundError('Organization');
+    }
+
+    // Check if organization is on trial
+    const now = new Date();
+    const trialEndsAt = org.trialEndsAt ? new Date(org.trialEndsAt) : null;
+    const isTrialing = trialEndsAt && trialEndsAt > now;
+    const daysRemaining = isTrialing
+      ? Math.ceil((trialEndsAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+      : 0;
+
+    return {
+      success: true,
+      data: {
+        isTrialing,
+        trialStartedAt: org.trialStartedAt,
+        trialEndsAt: org.trialEndsAt,
+        daysRemaining: Math.max(0, daysRemaining),
+      },
+    };
+  });
+
+  // Get invoice history from Stripe
+  app.get('/invoices', async (request, reply) => {
+    const { orgId } = request.params as { orgId: string };
+
+    if (!isStripeConfigured()) {
+      return { success: true, data: [] };
+    }
+
+    const stripe = requireStripe();
+
+    const org = await db.query.organizations.findFirst({
+      where: eq(organizations.id, orgId),
+    });
+
+    if (!org || !org.stripeCustomerId) {
+      return { success: true, data: [] };
+    }
+
+    try {
+      const invoices = await stripe.invoices.list({
+        customer: org.stripeCustomerId,
+        limit: 24, // Last 2 years of monthly invoices
+      });
+
+      const formattedInvoices = invoices.data.map((invoice) => ({
+        id: invoice.id,
+        number: invoice.number,
+        status: invoice.status,
+        amountDue: invoice.amount_due,
+        amountPaid: invoice.amount_paid,
+        currency: invoice.currency,
+        created: invoice.created,
+        periodStart: invoice.period_start,
+        periodEnd: invoice.period_end,
+        hostedInvoiceUrl: invoice.hosted_invoice_url,
+        invoicePdf: invoice.invoice_pdf,
+      }));
+
+      return { success: true, data: formattedInvoices };
+    } catch (error) {
+      console.error('Failed to fetch invoices:', error);
+      return { success: true, data: [] };
+    }
+  });
+
   // Create Stripe Checkout session
   app.post('/checkout', async (request, reply) => {
     const { orgId } = request.params as { orgId: string };
@@ -170,7 +246,8 @@ interface StripeSubscriptionData {
 
 // Webhook handler - separate route without org context
 export async function billingWebhookRoute(app: FastifyInstance) {
-  // Raw body parser for webhook signature verification
+  // Remove default JSON parser and add raw body parser for webhook signature verification
+  app.removeContentTypeParser('application/json');
   app.addContentTypeParser(
     'application/json',
     { parseAs: 'buffer' },

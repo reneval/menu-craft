@@ -42,6 +42,10 @@ export async function publicMenuRoutes(fastify: FastifyInstance) {
           slug: true,
           timezone: true,
           logoUrl: true,
+          phone: true,
+          website: true,
+          address: true,
+          openingHours: true,
         },
       });
 
@@ -149,6 +153,11 @@ export async function publicMenuRoutes(fastify: FastifyInstance) {
           slug: venue.slug,
           logoUrl: venue.logoUrl,
           timezone: venue.timezone,
+          // Contact info for Call/Directions buttons
+          phone: venue.phone,
+          website: venue.website,
+          address: venue.address,
+          openingHours: venue.openingHours,
         },
         menu: {
           id: menuWithContent.id,
@@ -227,7 +236,7 @@ export async function publicMenuRoutes(fastify: FastifyInstance) {
       // For MVP, assume code format is venue-slug
       const redirectUrl = `/v/${code}`;
 
-      return reply.redirect(302, redirectUrl);
+      return reply.redirect(redirectUrl, 302);
 
     } catch (error) {
       console.error('QR redirect error:', error);
@@ -274,7 +283,8 @@ async function getActiveMenuForVenue(venueId: string, timezone: string = 'UTC'):
 
   // TODO: Implement sophisticated schedule evaluation
   // For now, return the first published menu
-  return { id: publishedMenus[0].id };
+  const firstMenu = publishedMenus[0];
+  return firstMenu ? { id: firstMenu.id } : null;
 }
 
 /**
@@ -291,7 +301,7 @@ function groupItemOptions(options: Array<{
     if (!acc[option.optionGroup]) {
       acc[option.optionGroup] = [];
     }
-    acc[option.optionGroup].push({
+    acc[option.optionGroup]!.push({
       id: option.id,
       name: option.name,
       priceModifier: option.priceModifier,

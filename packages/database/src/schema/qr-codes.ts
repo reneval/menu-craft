@@ -9,7 +9,7 @@ export const qrCodes = pgTable('qr_codes', {
     .references(() => organizations.id),
   targetType: qrTargetTypeEnum('target_type').notNull(),
   targetId: uuid('target_id').notNull(),
-  name: text('name').notNull(),
+  name: text('name').notNull().default('QR Code'),
   code: text('code').unique().notNull(),
   options: jsonb('options').notNull().default('{}'),
   scanCount: integer('scan_count').notNull().default(0),

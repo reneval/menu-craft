@@ -6,6 +6,10 @@ export const organizations = pgTable('organizations', {
   slug: text('slug').unique().notNull(),
   stripeCustomerId: text('stripe_customer_id').unique(),
   settings: jsonb('settings').notNull().default({}),
+  // Trial fields
+  trialStartedAt: timestamp('trial_started_at', { withTimezone: true }),
+  trialEndsAt: timestamp('trial_ends_at', { withTimezone: true }),
+  trialExtendedBy: uuid('trial_extended_by'), // Admin who extended the trial
   deletedAt: timestamp('deleted_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

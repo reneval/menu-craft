@@ -5,6 +5,7 @@ import { organizationsRoutes } from './organizations.js';
 import { usersRoutes } from './users.js';
 import { featureFlagsRoutes } from './feature-flags.js';
 import { backupsRoutes } from './backups.js';
+import { jobsRoutes } from './jobs.js';
 
 export async function adminRoutes(app: FastifyInstance) {
   // All admin routes require super admin authentication
@@ -24,4 +25,7 @@ export async function adminRoutes(app: FastifyInstance) {
 
   // Backups
   await app.register(backupsRoutes, { prefix: '/backups' });
+
+  // Scheduled jobs
+  await app.register(jobsRoutes, { prefix: '/jobs' });
 }

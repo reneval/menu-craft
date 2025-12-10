@@ -34,6 +34,8 @@ const envSchema = z.object({
   WEBHOOK_SIGNING_SECRET: z.string().optional(),
   // AI Services
   ANTHROPIC_API_KEY: z.string().optional(),
+  // Admin
+  JWT_SECRET: z.string().default('menucraft-dev-secret-change-in-production'),
 });
 
 export type Env = z.infer<typeof envSchema>;

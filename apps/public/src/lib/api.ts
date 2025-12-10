@@ -10,12 +10,41 @@ declare global {
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
+export interface Address {
+  street?: string
+  city?: string
+  state?: string
+  postalCode?: string
+  country?: string
+}
+
+export interface DayHours {
+  open: string
+  close: string
+  closed?: boolean
+}
+
+export interface OpeningHours {
+  monday?: DayHours
+  tuesday?: DayHours
+  wednesday?: DayHours
+  thursday?: DayHours
+  friday?: DayHours
+  saturday?: DayHours
+  sunday?: DayHours
+}
+
 export interface VenueData {
   id: string
   name: string
   slug: string
   logoUrl?: string
   timezone: string
+  // Contact info
+  phone?: string
+  website?: string
+  address?: Address
+  openingHours?: OpeningHours
 }
 
 export interface MenuData {

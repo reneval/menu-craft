@@ -55,6 +55,22 @@ export interface QrCodeStats {
   lastScannedAt: string | null;
 }
 
+export interface CountryStats {
+  country: string;
+  countryName: string;
+  count: number;
+}
+
+export interface LanguageStats {
+  language: string;
+  count: number;
+}
+
+export interface GeographicBreakdown {
+  countries: CountryStats[];
+  languages: LanguageStats[];
+}
+
 export interface DateRange {
   startDate: string;
   endDate: string;
@@ -66,6 +82,7 @@ export interface AnalyticsData {
   viewsByMenu: ViewByMenu[];
   recentViews: RecentView[];
   deviceBreakdown: DeviceBreakdown;
+  geographicBreakdown: GeographicBreakdown;
   qrCodes: QrCodeStats[];
   dateRange: DateRange;
 }

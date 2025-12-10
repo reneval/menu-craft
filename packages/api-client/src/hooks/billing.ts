@@ -47,10 +47,33 @@ export interface PortalResponse {
   url: string;
 }
 
+export interface Invoice {
+  id: string;
+  number: string | null;
+  status: string | null;
+  amountDue: number;
+  amountPaid: number;
+  currency: string;
+  created: number;
+  periodStart: number;
+  periodEnd: number;
+  hostedInvoiceUrl: string | null;
+  invoicePdf: string | null;
+}
+
+export interface TrialStatus {
+  isTrialing: boolean;
+  trialStartedAt: string | null;
+  trialEndsAt: string | null;
+  daysRemaining: number;
+}
+
 export const billingKeys = {
   all: ['billing'] as const,
   plans: () => [...billingKeys.all, 'plans'] as const,
   subscription: (orgId: string) => [...billingKeys.all, 'subscription', { orgId }] as const,
+  invoices: (orgId: string) => [...billingKeys.all, 'invoices', { orgId }] as const,
+  trialStatus: (orgId: string) => [...billingKeys.all, 'trial-status', { orgId }] as const,
 };
 
 export function usePlans() {
@@ -92,5 +115,27 @@ export function useCreatePortalSession(orgId: string) {
       const client = getApiClient();
       return client.post<PortalResponse>(`/organizations/${orgId}/billing/portal`, input);
     },
+  });
+}
+
+export function useInvoices(orgId: string) {
+  return useQuery({
+    queryKey: billingKeys.invoices(orgId),
+    queryFn: async () => {
+      const client = getApiClient();
+      return client.get<Invoice[]>(`/organizations/${orgId}/billing/invoices`);
+    },
+    enabled: !!orgId,
+  });
+}
+
+export function useTrialStatus(orgId: string) {
+  return useQuery({
+    queryKey: billingKeys.trialStatus(orgId),
+    queryFn: async () => {
+      const client = getApiClient();
+      return client.get<TrialStatus>(`/organizations/${orgId}/billing/trial-status`);
+    },
+    enabled: !!orgId,
   });
 }

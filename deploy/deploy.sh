@@ -22,61 +22,57 @@ export $(cat .env | grep -v '^#' | xargs)
 # Parse arguments
 ACTION=${1:-"deploy"}
 
+COMPOSE_FILE="docker-compose.prod.yml"
+
 case $ACTION in
     deploy)
         echo -e "${YELLOW}Building and deploying services...${NC}"
-        docker compose build --no-cache
-        docker compose up -d
+        docker compose -f $COMPOSE_FILE build --no-cache
+        docker compose -f $COMPOSE_FILE up -d
         
         echo -e "${YELLOW}Waiting for services to start...${NC}"
         sleep 10
         
         echo -e "${YELLOW}Running database migrations...${NC}"
-        docker compose exec -T api node -e "
-            const { exec } = require('child_process');
-            exec('npx drizzle-kit push', { cwd: '/app/packages/database' }, (err, stdout, stderr) => {
-                console.log(stdout);
-                if (err) console.error(stderr);
-            });
-        " || echo "Note: Run migrations manually if needed"
-        
+        docker compose -f $COMPOSE_FILE exec -T api sh -c "cd /app && npx drizzle-kit push" || echo "Note: Run migrations manually if needed"
+
         echo -e "${GREEN}Deployment complete!${NC}"
-        docker compose ps
+        docker compose -f $COMPOSE_FILE ps
         ;;
-        
+
     update)
         echo -e "${YELLOW}Pulling latest changes and redeploying...${NC}"
         git pull origin main
-        docker compose build --no-cache
-        docker compose up -d
+        docker compose -f $COMPOSE_FILE build --no-cache
+        docker compose -f $COMPOSE_FILE up -d
         echo -e "${GREEN}Update complete!${NC}"
-        docker compose ps
+        docker compose -f $COMPOSE_FILE ps
         ;;
-        
+
     logs)
-        docker compose logs -f ${2:-""}
+        docker compose -f $COMPOSE_FILE logs -f ${2:-""}
         ;;
-        
+
     status)
-        docker compose ps
+        docker compose -f $COMPOSE_FILE ps
         ;;
-        
+
     stop)
         echo -e "${YELLOW}Stopping services...${NC}"
-        docker compose down
+        docker compose -f $COMPOSE_FILE down
         echo -e "${GREEN}Services stopped.${NC}"
         ;;
-        
+
     restart)
         echo -e "${YELLOW}Restarting services...${NC}"
-        docker compose restart
+        docker compose -f $COMPOSE_FILE restart
         echo -e "${GREEN}Services restarted.${NC}"
         ;;
-        
+
     backup)
         BACKUP_FILE="backup_$(date +%Y%m%d_%H%M%S).sql"
         echo -e "${YELLOW}Creating database backup: ${BACKUP_FILE}${NC}"
-        docker compose exec -T postgres pg_dump -U $POSTGRES_USER $POSTGRES_DB > $BACKUP_FILE
+        docker compose -f $COMPOSE_FILE exec -T postgres pg_dump -U $POSTGRES_USER $POSTGRES_DB > $BACKUP_FILE
         echo -e "${GREEN}Backup created: ${BACKUP_FILE}${NC}"
         ;;
         

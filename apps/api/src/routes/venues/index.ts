@@ -6,9 +6,10 @@ import { NotFoundError, ForbiddenError } from '../../utils/errors.js';
 import { canCreateVenue } from '../../lib/billing.js';
 import { domainRoutes } from './domains.js';
 import { emitVenueCreated, emitVenueUpdated, emitVenueDeleted } from '../../lib/webhooks.js';
+import { startTrial } from '../../lib/trial.js';
 
-// Ensure organization exists, create if not
-async function ensureOrganization(orgId: string): Promise<void> {
+// Ensure organization exists, create if not (with 30-day trial)
+async function ensureOrganization(orgId: string): Promise<boolean> {
   const existing = await db.query.organizations.findFirst({
     where: eq(organizations.id, orgId),
   });
@@ -22,7 +23,12 @@ async function ensureOrganization(orgId: string): Promise<void> {
         slug: `org-${orgId.slice(0, 8)}`,
       })
       .onConflictDoNothing();
+
+    // Start 30-day trial for new organizations
+    await startTrial(orgId);
+    return true; // New org created
   }
+  return false; // Existing org
 }
 
 export async function venueRoutes(app: FastifyInstance) {
@@ -67,6 +73,9 @@ export async function venueRoutes(app: FastifyInstance) {
         slug,
         timezone: body.timezone || 'UTC',
         address: body.address || {},
+        phone: body.phone,
+        website: body.website,
+        openingHours: body.openingHours,
       })
       .returning();
 

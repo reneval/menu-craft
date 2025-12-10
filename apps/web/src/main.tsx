@@ -17,10 +17,8 @@ declare module '@tanstack/react-router' {
 }
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <Providers>
-      <RouterProvider router={router} />
-      <Toaster />
-    </Providers>
-  </React.StrictMode>
+  <Providers>
+    <RouterProvider router={router} />
+    <Toaster />
+  </Providers>
 );

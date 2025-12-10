@@ -2,6 +2,7 @@ import { type FastifyInstance } from 'fastify';
 import { db, venues, menus, menuSections, menuItems, menuViews, itemViews, qrCodes, menuSchedules, customDomains, translations, eq, and, isNull, asc, sql, inArray } from '@menucraft/database';
 import { NotFoundError } from '../../utils/errors.js';
 import { isMenuScheduleActive } from '../../lib/schedules.js';
+import { getClientIP, lookupGeo } from '../../lib/geoip.js';
 
 type TranslationMap = Record<string, { name?: string; description?: string }>;
 
@@ -277,10 +278,11 @@ export async function publicRoutes(app: FastifyInstance) {
   // Track menu view (called from frontend)
   app.post('/v/:venueSlug/track', async (request, reply) => {
     const { venueSlug } = request.params as { venueSlug: string };
-    const { menuId, sessionId, referrer } = request.body as {
+    const { menuId, sessionId, referrer, language } = request.body as {
       menuId: string;
       sessionId?: string;
       referrer?: string;
+      language?: string;
     };
 
     // Find venue
@@ -296,6 +298,10 @@ export async function publicRoutes(app: FastifyInstance) {
       return { success: true };
     }
 
+    // GeoIP lookup
+    const clientIP = getClientIP(request);
+    const geo = lookupGeo(clientIP);
+
     // Record the view
     try {
       await db.insert(menuViews).values({
@@ -304,6 +310,11 @@ export async function publicRoutes(app: FastifyInstance) {
         sessionId,
         userAgent: request.headers['user-agent'] || null,
         referrer,
+        // GeoIP data
+        country: geo.country,
+        city: geo.city,
+        // Browser language
+        language: language || request.headers['accept-language']?.split(',')[0]?.split('-')[0] || null,
       });
     } catch {
       // Silently fail for tracking errors

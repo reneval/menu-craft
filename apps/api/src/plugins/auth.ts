@@ -47,9 +47,8 @@ async function authPlugin(app: FastifyInstance) {
         // For organization-scoped routes, populate tenant context
         if (request.url.includes('/api/organizations/')) {
           const orgIdMatch = request.url.match(/\/api\/organizations\/([^\/]+)/);
-          if (orgIdMatch) {
-            const orgId = orgIdMatch[1];
-
+          const orgId = orgIdMatch?.[1];
+          if (orgId) {
             // Verify user has access to this organization
             const membership = await db.query.organizationUsers.findFirst({
               where: and(

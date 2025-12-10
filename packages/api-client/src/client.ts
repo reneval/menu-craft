@@ -54,10 +54,14 @@ export class ApiClient {
     const url = `${this.config.baseUrl}${path}`;
     const headers = await this.getHeaders();
 
+    // For POST/PATCH with no body, send empty object to satisfy Fastify's JSON parser
+    // This is needed because we always set Content-Type: application/json
+    const requestBody = body !== undefined ? body : (method === 'POST' || method === 'PATCH' ? {} : undefined);
+
     const response = await fetch(url, {
       method,
       headers,
-      body: body ? JSON.stringify(body) : undefined,
+      body: requestBody !== undefined ? JSON.stringify(requestBody) : undefined,
     });
 
     const data = await response.json() as ApiResponse<T>;

@@ -5,11 +5,8 @@
 import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { translationService } from '../../lib/translation-service.js';
-import { requireAuth } from '../../plugins/auth.js';
-import { requireRLS } from '../../middleware/rls.js';
-import { db } from '@menucraft/database';
-import { menus, menuSections, menuItems, menuItemOptions } from '@menucraft/database/schema';
-import { eq, and, inArray } from 'drizzle-orm';
+import { db, menus, menuSections, menuItems, menuItemOptions, eq, and, inArray } from '@menucraft/database';
+import { validate } from '../../utils/validation.js';
 
 const AutoTranslateRequestSchema = z.object({
   targetLanguage: z.string().length(2, 'Target language must be a 2-letter ISO 639-1 code'),
@@ -43,24 +40,11 @@ const BatchTranslateRequestSchema = z.object({
 });
 
 export async function autoTranslateRoutes(fastify: FastifyInstance) {
-  await fastify.register(requireAuth);
-
   // Auto-translate a single menu
-  fastify.post<{
-    Params: { menuId: string };
-    Body: z.infer<typeof AutoTranslateRequestSchema>;
-  }>('/:menuId/auto-translate', {
-    preHandler: [requireRLS],
-    schema: {
-      params: z.object({
-        menuId: z.string().uuid(),
-      }),
-      body: AutoTranslateRequestSchema,
-    },
-  }, async (request, reply) => {
-    const { menuId } = request.params;
-    const { targetLanguage, entities, config } = request.body;
-    const organizationId = request.user!.organizationId;
+  fastify.post('/', async (request, reply) => {
+    const { orgId: organizationId, menuId } = request.params as { orgId: string; menuId: string };
+    const body = validate(AutoTranslateRequestSchema, request.body);
+    const { targetLanguage, entities, config } = body;
 
     if (!translationService.isAvailable()) {
       return reply.code(503).send({
@@ -90,38 +74,28 @@ export async function autoTranslateRoutes(fastify: FastifyInstance) {
         });
       }
 
-      const translationItems = [];
+      const translationItems: Array<{ id: string; text: string; targetLang: string; config: typeof config }> = [];
 
       // Prepare menu translation
-      if (entities.menu) {
-        if (menu[0].name) {
-          translationItems.push({
-            id: `menu-${menuId}-name`,
-            text: menu[0].name,
-            targetLang: targetLanguage,
-            config,
-          });
-        }
-        if (menu[0].description) {
-          translationItems.push({
-            id: `menu-${menuId}-description`,
-            text: menu[0].description,
-            targetLang: targetLanguage,
-            config,
-          });
-        }
+      if (entities.menu && menu[0]?.name) {
+        translationItems.push({
+          id: `menu-${menuId}-name`,
+          text: menu[0].name,
+          targetLang: targetLanguage,
+          config,
+        });
       }
 
       // Get sections if needed
-      let sections = [];
+      let sectionsList: (typeof menuSections.$inferSelect)[] = [];
       if (entities.sections || entities.items || entities.options) {
-        sections = await db
+        sectionsList = await db
           .select()
           .from(menuSections)
           .where(and(eq(menuSections.menuId, menuId), eq(menuSections.organizationId, organizationId)));
 
         if (entities.sections) {
-          for (const section of sections) {
+          for (const section of sectionsList) {
             if (section.name) {
               translationItems.push({
                 id: `section-${section.id}-name`,
@@ -143,11 +117,11 @@ export async function autoTranslateRoutes(fastify: FastifyInstance) {
       }
 
       // Get items if needed
-      let items = [];
+      let itemsList: (typeof menuItems.$inferSelect)[] = [];
       if (entities.items || entities.options) {
-        const sectionIds = sections.map(s => s.id);
+        const sectionIds = sectionsList.map(s => s.id);
         if (sectionIds.length > 0) {
-          items = await db
+          itemsList = await db
             .select()
             .from(menuItems)
             .where(and(
@@ -157,7 +131,7 @@ export async function autoTranslateRoutes(fastify: FastifyInstance) {
         }
 
         if (entities.items) {
-          for (const item of items) {
+          for (const item of itemsList) {
             if (item.name) {
               translationItems.push({
                 id: `item-${item.id}-name`,
@@ -179,8 +153,8 @@ export async function autoTranslateRoutes(fastify: FastifyInstance) {
       }
 
       // Get options if needed
-      if (entities.options && items.length > 0) {
-        const itemIds = items.map(i => i.id);
+      if (entities.options && itemsList.length > 0) {
+        const itemIds = itemsList.map(i => i.id);
         const options = await db
           .select()
           .from(menuItemOptions)
@@ -275,16 +249,10 @@ export async function autoTranslateRoutes(fastify: FastifyInstance) {
   });
 
   // Batch auto-translate multiple menus
-  fastify.post<{
-    Body: z.infer<typeof BatchTranslateRequestSchema>;
-  }>('/batch-auto-translate', {
-    preHandler: [requireRLS],
-    schema: {
-      body: BatchTranslateRequestSchema,
-    },
-  }, async (request, reply) => {
-    const { menuIds, targetLanguage, entities, config } = request.body;
-    const organizationId = request.user!.organizationId;
+  fastify.post('/batch', async (request, reply) => {
+    const { orgId: organizationId } = request.params as { orgId: string };
+    const body = validate(BatchTranslateRequestSchema, request.body);
+    const { menuIds, targetLanguage, entities, config } = body;
 
     if (!translationService.isAvailable()) {
       return reply.code(503).send({
@@ -353,9 +321,7 @@ export async function autoTranslateRoutes(fastify: FastifyInstance) {
   });
 
   // Get translation service status and usage
-  fastify.get('/translation-status', {
-    preHandler: [requireRLS],
-  }, async (request, reply) => {
+  fastify.get('/status', async (request, reply) => {
     try {
       const [usage, languages] = await Promise.all([
         translationService.getUsageStats(),
@@ -384,14 +350,7 @@ export async function autoTranslateRoutes(fastify: FastifyInstance) {
   });
 
   // Clear translation cache
-  fastify.delete('/translation-cache', {
-    preHandler: [requireRLS],
-    schema: {
-      querystring: z.object({
-        pattern: z.string().optional(),
-      }),
-    },
-  }, async (request, reply) => {
+  fastify.delete('/cache', async (request, reply) => {
     try {
       const { pattern } = request.query as { pattern?: string };
       const result = await translationService.clearCache(pattern);

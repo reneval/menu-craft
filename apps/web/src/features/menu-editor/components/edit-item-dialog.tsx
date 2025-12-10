@@ -11,11 +11,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { useUpdateItem, useDeleteItem, type MenuItemWithOptions } from '@menucraft/api-client';
+import {
+  useUpdateItem,
+  useDeleteItem,
+  type MenuItemWithOptions,
+  useGenerateDescription,
+  useSuggestPrice,
+  useSuggestTags,
+  useAIStatus,
+} from '@menucraft/api-client';
 import type { DietaryTag, Allergen, ItemBadge } from '@menucraft/shared-types';
 import { ITEM_BADGES } from '@menucraft/shared-types';
 import { toast } from '@/components/ui/use-toast';
-import { Loader2, Trash2 } from 'lucide-react';
+import { Loader2, Trash2, Sparkles } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,6 +39,12 @@ import { TagSelector } from './tag-selector';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ImageUpload } from '@/components/image-upload';
 import { ItemOptionsEditor, type ItemOption } from './item-options-editor';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  TooltipProvider,
+} from '@/components/ui/tooltip';
 
 interface EditItemDialogProps {
   open: boolean;
@@ -64,6 +78,117 @@ export function EditItemDialog({
 
   const updateItem = useUpdateItem(orgId, venueId, menuId, sectionId, item?.id || '');
   const deleteItem = useDeleteItem(orgId, venueId, menuId, sectionId);
+  const { data: aiStatus } = useAIStatus(orgId);
+  const generateDescription = useGenerateDescription(orgId);
+  const suggestPrice = useSuggestPrice(orgId);
+  const suggestTags = useSuggestTags(orgId);
+
+  const isAIAvailable = aiStatus?.available ?? false;
+
+  const handleGenerateDescription = async () => {
+    if (!name.trim()) {
+      toast({
+        title: 'Enter item name first',
+        description: 'Please enter an item name before generating a description.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    generateDescription.mutate(
+      {
+        itemName: name.trim(),
+        existingDescription: description.trim() || undefined,
+      },
+      {
+        onSuccess: (data) => {
+          setDescription(data.description);
+          toast({
+            title: 'Description generated',
+            description: 'AI-generated description has been applied.',
+            variant: 'success',
+          });
+        },
+        onError: (error) => {
+          toast({
+            title: 'Failed to generate description',
+            description: error.message,
+            variant: 'destructive',
+          });
+        },
+      }
+    );
+  };
+
+  const handleSuggestPrice = async () => {
+    if (!name.trim()) {
+      toast({
+        title: 'Enter item name first',
+        description: 'Please enter an item name before suggesting a price.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    suggestPrice.mutate(
+      {
+        itemName: name.trim(),
+      },
+      {
+        onSuccess: (data) => {
+          setPrice((data.mid / 100).toFixed(2));
+          toast({
+            title: 'Price suggested',
+            description: `Suggested: $${(data.low / 100).toFixed(2)} - $${(data.high / 100).toFixed(2)}. Using mid-range.`,
+            variant: 'success',
+          });
+        },
+        onError: (error) => {
+          toast({
+            title: 'Failed to suggest price',
+            description: error.message,
+            variant: 'destructive',
+          });
+        },
+      }
+    );
+  };
+
+  const handleSuggestTags = async () => {
+    if (!name.trim()) {
+      toast({
+        title: 'Enter item name first',
+        description: 'Please enter an item name before suggesting tags.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    suggestTags.mutate(
+      {
+        itemName: name.trim(),
+        description: description.trim() || undefined,
+      },
+      {
+        onSuccess: (data) => {
+          setDietaryTags(data.dietaryTags as DietaryTag[]);
+          setAllergens(data.allergens as Allergen[]);
+          toast({
+            title: 'Tags suggested',
+            description: `Added ${data.dietaryTags.length} dietary tags and ${data.allergens.length} allergens.`,
+            variant: 'success',
+          });
+        },
+        onError: (error) => {
+          toast({
+            title: 'Failed to suggest tags',
+            description: error.message,
+            variant: 'destructive',
+          });
+        },
+      }
+    );
+  };
 
   useEffect(() => {
     if (item) {
@@ -169,13 +294,14 @@ export function EditItemDialog({
   };
 
   return (
-    <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Edit Item</DialogTitle>
-            <DialogDescription>Update the item details.</DialogDescription>
-          </DialogHeader>
+    <TooltipProvider>
+      <>
+        <Dialog open={open} onOpenChange={onOpenChange}>
+          <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Edit Item</DialogTitle>
+              <DialogDescription>Update the item details.</DialogDescription>
+            </DialogHeader>
           <form onSubmit={handleSubmit}>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
@@ -188,7 +314,33 @@ export function EditItemDialog({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-item-description">Description (optional)</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="edit-item-description">Description (optional)</Label>
+                  {isAIAvailable && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-violet-600 hover:text-violet-700 hover:bg-violet-50"
+                          onClick={handleGenerateDescription}
+                          disabled={generateDescription.isPending}
+                        >
+                          {generateDescription.isPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Sparkles className="h-4 w-4" />
+                          )}
+                          <span className="ml-1 text-xs">{description ? 'Improve' : 'Generate'}</span>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {description ? 'Improve description with AI' : 'Generate description with AI'}
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                </div>
                 <Textarea
                   id="edit-item-description"
                   value={description}
@@ -197,7 +349,31 @@ export function EditItemDialog({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-item-price">Price</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="edit-item-price">Price</Label>
+                  {isAIAvailable && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-violet-600 hover:text-violet-700 hover:bg-violet-50"
+                          onClick={handleSuggestPrice}
+                          disabled={suggestPrice.isPending}
+                        >
+                          {suggestPrice.isPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Sparkles className="h-4 w-4" />
+                          )}
+                          <span className="ml-1 text-xs">Suggest</span>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Suggest price with AI</TooltipContent>
+                    </Tooltip>
+                  )}
+                </div>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
                     $
@@ -223,6 +399,31 @@ export function EditItemDialog({
                   disabled={updateItem.isPending}
                 />
               </div>
+
+              {isAIAvailable && (
+                <div className="flex justify-end">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-violet-600 hover:text-violet-700 hover:bg-violet-50"
+                        onClick={handleSuggestTags}
+                        disabled={suggestTags.isPending}
+                      >
+                        {suggestTags.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Sparkles className="h-4 w-4" />
+                        )}
+                        <span className="ml-1 text-xs">Suggest Tags & Allergens</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>AI will suggest dietary tags and allergens</TooltipContent>
+                  </Tooltip>
+                </div>
+              )}
 
               <TagSelector
                 label="Dietary Tags"
@@ -304,6 +505,7 @@ export function EditItemDialog({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+      </>
+    </TooltipProvider>
   );
 }

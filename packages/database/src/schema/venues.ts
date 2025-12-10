@@ -13,6 +13,9 @@ export const venues = pgTable(
     slug: text('slug').notNull(),
     timezone: text('timezone').notNull().default('UTC'),
     address: jsonb('address').notNull().default({}),
+    phone: text('phone'),
+    website: text('website'),
+    openingHours: jsonb('opening_hours'), // { monday: { open: "09:00", close: "22:00", closed?: boolean }, ... }
     logoUrl: text('logo_url'),
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),

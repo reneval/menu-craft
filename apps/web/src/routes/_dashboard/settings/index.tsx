@@ -12,10 +12,11 @@ import {
   useSubscription,
   useCreateCheckout,
   useCreatePortalSession,
+  useInvoices,
 } from '@menucraft/api-client';
 import { useCurrentOrg } from '@/store/organization';
 import { useState, useEffect } from 'react';
-import { Loader2, Building2, Users, CreditCard, Save, Check, Zap, ExternalLink } from 'lucide-react';
+import { Loader2, Building2, Users, CreditCard, Save, Check, Zap, ExternalLink, Receipt, Download, Eye } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 
 export const Route = createFileRoute('/_dashboard/settings/')({
@@ -376,6 +377,166 @@ function BillingSection({ orgId }: { orgId: string }) {
           </CardContent>
         </Card>
       )}
+
+      {/* Invoice History */}
+      <InvoiceHistory orgId={orgId} />
     </>
+  );
+}
+
+function InvoiceHistory({ orgId }: { orgId: string }) {
+  const { data: invoices, isLoading } = useInvoices(orgId);
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Receipt className="h-5 w-5 text-muted-foreground" />
+            <div>
+              <CardTitle>Billing History</CardTitle>
+              <CardDescription>Your past invoices and payments</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex h-32 items-center justify-center">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!invoices || invoices.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Receipt className="h-5 w-5 text-muted-foreground" />
+            <div>
+              <CardTitle>Billing History</CardTitle>
+              <CardDescription>Your past invoices and payments</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-lg border border-dashed p-6 text-center">
+            <Receipt className="mx-auto h-10 w-10 text-muted-foreground/50" />
+            <p className="mt-2 font-medium">No invoices yet</p>
+            <p className="text-sm text-muted-foreground">
+              Your billing history will appear here once you subscribe to a paid plan.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const formatDate = (timestamp: number) => {
+    return new Date(timestamp * 1000).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  };
+
+  const formatAmount = (amount: number, currency: string) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency.toUpperCase(),
+    }).format(amount / 100);
+  };
+
+  const getStatusBadge = (status: string | null) => {
+    switch (status) {
+      case 'paid':
+        return <Badge variant="default" className="bg-green-500">Paid</Badge>;
+      case 'open':
+        return <Badge variant="secondary">Open</Badge>;
+      case 'void':
+        return <Badge variant="outline">Void</Badge>;
+      case 'uncollectible':
+        return <Badge variant="destructive">Uncollectible</Badge>;
+      default:
+        return <Badge variant="outline">{status || 'Unknown'}</Badge>;
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center gap-2">
+          <Receipt className="h-5 w-5 text-muted-foreground" />
+          <div>
+            <CardTitle>Billing History</CardTitle>
+            <CardDescription>Your past invoices and payments</CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-3">
+          {invoices.map((invoice) => (
+            <div
+              key={invoice.id}
+              className="flex items-center justify-between rounded-lg border p-4"
+            >
+              <div className="flex items-center gap-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+                  <Receipt className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium">
+                      {invoice.number || `Invoice ${invoice.id.slice(-8)}`}
+                    </p>
+                    {getStatusBadge(invoice.status)}
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {formatDate(invoice.created)}
+                    {invoice.periodStart && invoice.periodEnd && (
+                      <span className="ml-2">
+                        ({formatDate(invoice.periodStart)} - {formatDate(invoice.periodEnd)})
+                      </span>
+                    )}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <p className="font-semibold">
+                  {formatAmount(invoice.amountPaid || invoice.amountDue, invoice.currency)}
+                </p>
+                <div className="flex gap-2">
+                  {invoice.hostedInvoiceUrl && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      asChild
+                      title="View invoice"
+                    >
+                      <a href={invoice.hostedInvoiceUrl} target="_blank" rel="noopener noreferrer">
+                        <Eye className="h-4 w-4" />
+                      </a>
+                    </Button>
+                  )}
+                  {invoice.invoicePdf && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      asChild
+                      title="Download PDF"
+                    >
+                      <a href={invoice.invoicePdf} target="_blank" rel="noopener noreferrer">
+                        <Download className="h-4 w-4" />
+                      </a>
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
   );
 }

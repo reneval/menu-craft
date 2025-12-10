@@ -254,9 +254,10 @@ export async function qrCodeRoutes(app: FastifyInstance) {
       .send(qrImage);
   });
 
-  // Download QR code image
+  // Download QR code image (PNG or SVG)
   app.get('/:id/download', async (request, reply) => {
     const { orgId, id } = request.params as { orgId: string; id: string };
+    const { format = 'png' } = request.query as { format?: 'png' | 'svg' };
 
     const code = await db.query.qrCodes.findFirst({
       where: and(eq(qrCodes.id, id), eq(qrCodes.organizationId, orgId)),
@@ -295,12 +296,22 @@ export async function qrCodeRoutes(app: FastifyInstance) {
     }
 
     const qrOptions = (code.options as QRCodeOptions) || {};
-    const qrImage = await qrService.generateQRCode(targetUrl, qrOptions);
 
-    reply
-      .type('image/png')
-      .header('Content-Disposition', `attachment; filename="${qrService.getQRCodeFileName(code.name)}"`)
-      .send(qrImage);
+    if (format === 'svg') {
+      // Generate SVG (note: logo embedding not supported in SVG)
+      const svgString = await qrService.generateQRCodeSVG(targetUrl, qrOptions);
+      reply
+        .type('image/svg+xml')
+        .header('Content-Disposition', `attachment; filename="${qrService.getQRCodeFileName(code.name, 'svg')}"`)
+        .send(svgString);
+    } else {
+      // Generate PNG (default)
+      const qrImage = await qrService.generateQRCode(targetUrl, qrOptions);
+      reply
+        .type('image/png')
+        .header('Content-Disposition', `attachment; filename="${qrService.getQRCodeFileName(code.name, 'png')}"`)
+        .send(qrImage);
+    }
   });
 
   // Delete QR code

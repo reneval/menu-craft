@@ -1,4 +1,14 @@
-import { pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+
+export interface UserPreferences {
+  language?: string;
+  timezone?: string;
+  notifications?: {
+    emailOnMenuPublish?: boolean;
+    emailWeeklyDigest?: boolean;
+    emailProductUpdates?: boolean;
+  };
+}
 import { userRoleEnum } from './enums';
 import { organizations } from './organizations';
 
@@ -9,7 +19,9 @@ export const users = pgTable('users', {
   firstName: text('first_name'),
   lastName: text('last_name'),
   avatarUrl: text('avatar_url'),
+  preferences: jsonb('preferences').$type<UserPreferences>().notNull().default({}),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
 export type User = typeof users.$inferSelect;

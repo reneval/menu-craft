@@ -2,6 +2,14 @@
 export { ApiClient, ApiError, initApiClient, getApiClient } from './client.js';
 export type { ApiClientConfig } from './client.js';
 
+// User hooks
+export {
+  userKeys,
+  useCurrentUser,
+  useUpdateProfile,
+  useUpdatePreferences,
+} from './hooks/users.js';
+
 // Organization hooks
 export {
   organizationKeys,
@@ -104,6 +112,9 @@ export type {
   DeviceStats,
   BrowserStats,
   DeviceBreakdown,
+  CountryStats,
+  LanguageStats,
+  GeographicBreakdown,
   QrCodeStats,
   DateRange,
   AnalyticsData,
@@ -136,6 +147,8 @@ export {
   useSubscription,
   useCreateCheckout,
   useCreatePortalSession,
+  useInvoices,
+  useTrialStatus,
 } from './hooks/billing.js';
 export type {
   Plan,
@@ -143,7 +156,19 @@ export type {
   SubscriptionResponse,
   CheckoutResponse,
   PortalResponse,
+  Invoice,
+  TrialStatus,
 } from './hooks/billing.js';
+
+// Referral hooks
+export {
+  referralKeys,
+  useReferralStats,
+  useCreditBalance,
+  useGenerateReferralCode,
+  useRedeemReferralCode,
+} from './hooks/referrals.js';
+export type { ReferralStats, CreditBalance } from './hooks/referrals.js';
 
 // Schedule hooks
 export {
@@ -219,3 +244,39 @@ export {
   getActivityActionType,
 } from './hooks/activity.js';
 export type { ActivityLogEntry } from './hooks/activity.js';
+
+// Admin hooks
+export {
+  adminKeys,
+  useExtendTrial,
+  useAddCredit,
+  useImpersonate,
+  useSuspendOrganization,
+  useUnsuspendOrganization,
+} from './hooks/admin.js';
+export type {
+  ExtendTrialInput,
+  ExtendTrialResult,
+  AddCreditInput,
+  AddCreditResult,
+  ImpersonateResult,
+} from './hooks/admin.js';
+
+// AI hooks
+export {
+  aiKeys,
+  useAIStatus,
+  useGenerateDescription,
+  useSuggestPrice,
+  useSuggestTags,
+  useClearAICache,
+} from './hooks/ai.js';
+export type {
+  GenerateDescriptionInput,
+  GenerateDescriptionResult,
+  SuggestPriceInput,
+  SuggestPriceResult,
+  SuggestTagsInput,
+  SuggestTagsResult,
+  AIStatusResult,
+} from './hooks/ai.js';

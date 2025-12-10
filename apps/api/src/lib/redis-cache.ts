@@ -11,14 +11,30 @@ export interface CacheConfig {
 }
 
 export class RedisCache {
-  private client: RedisClientType;
+  private client: RedisClientType | null = null;
   private isConnected = false;
+  private isEnabled = false;
 
   constructor() {
+    // Only initialize Redis if REDIS_URL is explicitly configured
+    if (!env.REDIS_URL) {
+      console.log('Redis not configured (REDIS_URL not set), caching disabled');
+      return;
+    }
+
+    this.isEnabled = true;
     this.client = createClient({
-      url: env.REDIS_URL || 'redis://localhost:6379',
+      url: env.REDIS_URL,
       socket: {
         connectTimeout: 10000,
+        reconnectStrategy: (retries) => {
+          if (retries > 3) {
+            console.warn('Redis max retries reached, disabling cache');
+            this.isEnabled = false;
+            return false; // Stop reconnecting
+          }
+          return Math.min(retries * 100, 3000);
+        }
       }
     });
 
@@ -39,6 +55,9 @@ export class RedisCache {
   }
 
   async connect(): Promise<void> {
+    if (!this.isEnabled || !this.client) {
+      return;
+    }
     if (!this.isConnected) {
       try {
         await this.client.connect();
@@ -46,12 +65,13 @@ export class RedisCache {
       } catch (error) {
         console.warn('Redis connection failed, caching will be disabled:', error);
         this.isConnected = false;
+        this.isEnabled = false;
       }
     }
   }
 
   async disconnect(): Promise<void> {
-    if (this.isConnected) {
+    if (this.isConnected && this.client) {
       await this.client.disconnect();
       this.isConnected = false;
     }

@@ -50,7 +50,8 @@ export function validateWithHeaders<T>(
 
 // Query parameter validation helper
 export function validateQueryParams(query: unknown): QueryParams {
-  return validate(QueryParamsSchema, query);
+  // Zod schema with defaults will ensure these fields are always present after parsing
+  return validate(QueryParamsSchema, query) as QueryParams;
 }
 
 // File upload validation helper
@@ -114,9 +115,10 @@ export function checkRateLimit(
   const validRequests = requests.filter(time => time > windowStart);
 
   if (validRequests.length >= limit) {
+    const firstRequest = validRequests[0];
     return {
       allowed: false,
-      resetTime: new Date(validRequests[0] + windowMs),
+      resetTime: firstRequest ? new Date(firstRequest + windowMs) : undefined,
       remaining: 0
     };
   }

@@ -1,5 +1,5 @@
 import { type FastifyInstance } from 'fastify';
-import { db, menus, venues, menuSections, menuItems, eq, and } from '@menucraft/database';
+import { db, menus, venues, menuSections, menuItems, menuItemOptions, eq, and, asc } from '@menucraft/database';
 import { z } from 'zod';
 import { NotFoundError } from '../../utils/errors.js';
 import { pdfService, type PDFOptions, type MenuPDFData } from '../../lib/pdf-service.js';
@@ -34,86 +34,119 @@ export async function pdfExportRoutes(app: FastifyInstance) {
       throw new Error(`Invalid PDF options: ${validation.errors.join(', ')}`);
     }
 
-    // Fetch menu with all related data
-    const menu = await db.query.menus.findFirst({
-      where: and(eq(menus.id, menuId), eq(menus.venueId, venueId)),
-      with: {
-        venue: true,
-        sections: {
-          orderBy: (sections, { asc }) => [asc(sections.position)],
-          with: {
-            items: {
-              orderBy: (items, { asc }) => [asc(items.position)],
-              with: {
-                options: {
-                  with: {
-                    choices: {
-                      orderBy: (choices, { asc }) => [asc(choices.position)],
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    });
+    // Fetch menu
+    const [menu] = await db
+      .select()
+      .from(menus)
+      .where(and(eq(menus.id, menuId), eq(menus.venueId, venueId), eq(menus.organizationId, orgId)))
+      .limit(1);
 
     if (!menu) {
       throw new NotFoundError('Menu');
     }
 
-    // Verify organization access
-    if (menu.venue.organizationId !== orgId) {
-      throw new NotFoundError('Menu');
+    // Fetch venue
+    const [venue] = await db
+      .select()
+      .from(venues)
+      .where(eq(venues.id, venueId))
+      .limit(1);
+
+    if (!venue) {
+      throw new NotFoundError('Venue');
     }
+
+    // Fetch sections with items
+    const sections = await db
+      .select()
+      .from(menuSections)
+      .where(and(eq(menuSections.menuId, menuId), eq(menuSections.organizationId, orgId)))
+      .orderBy(asc(menuSections.sortOrder));
+
+    const sectionIds = sections.map(s => s.id);
+
+    // Fetch items for all sections
+    const items = sectionIds.length > 0
+      ? await db
+          .select()
+          .from(menuItems)
+          .where(eq(menuItems.organizationId, orgId))
+          .orderBy(asc(menuItems.sortOrder))
+      : [];
+
+    const itemIds = items.map(i => i.id);
+
+    // Fetch options for all items
+    const options = itemIds.length > 0
+      ? await db
+          .select()
+          .from(menuItemOptions)
+          .where(eq(menuItemOptions.organizationId, orgId))
+          .orderBy(asc(menuItemOptions.sortOrder))
+      : [];
+
+    // Group items by section
+    const itemsBySection = new Map<string, typeof items>();
+    for (const item of items) {
+      const sectionItems = itemsBySection.get(item.sectionId) || [];
+      sectionItems.push(item);
+      itemsBySection.set(item.sectionId, sectionItems);
+    }
+
+    // Group options by item
+    const optionsByItem = new Map<string, typeof options>();
+    for (const option of options) {
+      const itemOptions = optionsByItem.get(option.menuItemId) || [];
+      itemOptions.push(option);
+      optionsByItem.set(option.menuItemId, itemOptions);
+    }
+
+    // Extract address fields from jsonb
+    const venueAddress = venue.address as Record<string, string> | null;
 
     // Transform data for PDF generation
     const pdfData: MenuPDFData = {
       venue: {
-        name: menu.venue.name,
-        description: menu.venue.description || undefined,
-        address: menu.venue.address || undefined,
-        phone: menu.venue.phone || undefined,
-        website: menu.venue.website || undefined,
-        logo: menu.venue.logoUrl || undefined,
+        name: venue.name,
+        description: venueAddress?.description,
+        address: venueAddress?.street,
+        phone: venueAddress?.phone,
+        website: venueAddress?.website,
+        logo: venue.logoUrl || undefined,
       },
       menu: {
         id: menu.id,
         name: menu.name,
-        description: menu.description || undefined,
-        currency: menu.currency,
-        sections: menu.sections.map(section => ({
+        description: undefined,
+        currency: 'USD',
+        sections: sections.map(section => ({
           id: section.id,
           name: section.name,
           description: section.description || undefined,
-          items: section.items.map(item => ({
+          items: (itemsBySection.get(section.id) || []).map(item => ({
             id: item.id,
             name: item.name,
             description: item.description || undefined,
-            priceAmount: item.priceAmount,
+            priceAmount: item.priceAmount ?? 0,
             imageUrl: item.imageUrl || undefined,
-            allergens: item.allergens,
-            options: item.options.map(option => ({
+            allergens: (item.allergens as string[]) || [],
+            options: (optionsByItem.get(item.id) || []).map(option => ({
               name: option.name,
-              choices: option.choices.map(choice => ({
-                name: choice.name,
-                priceModifier: choice.priceModifier,
-              })),
+              choices: [],
             })),
           })),
         })),
       },
-      theme: menu.theme ? {
-        primaryColor: menu.theme.primaryColor || undefined,
-        fontFamily: menu.theme.fontFamily || undefined,
-        headerStyle: menu.theme.headerStyle || undefined,
+      theme: menu.themeConfig ? {
+        primaryColor: (menu.themeConfig as Record<string, unknown>).primaryColor as string || undefined,
+        fontFamily: (menu.themeConfig as Record<string, unknown>).fontFamily as string || undefined,
+        headerStyle: (menu.themeConfig as Record<string, unknown>).headerStyle as string || undefined,
       } : undefined,
     };
 
     try {
       const pdfBuffer = await pdfService.generateMenuPDF(pdfData, queryOptions as PDFOptions);
-      const filename = pdfService.generateFileName(menu.venue.name, menu.name);
+      const filename = pdfService.generateFileName(venue.name, menu.name);
 
       reply
         .type('application/pdf')
@@ -141,86 +174,119 @@ export async function pdfExportRoutes(app: FastifyInstance) {
       throw new Error(`Invalid PDF options: ${validation.errors.join(', ')}`);
     }
 
-    // Fetch menu with all related data
-    const menu = await db.query.menus.findFirst({
-      where: and(eq(menus.id, menuId), eq(menus.venueId, venueId)),
-      with: {
-        venue: true,
-        sections: {
-          orderBy: (sections, { asc }) => [asc(sections.position)],
-          with: {
-            items: {
-              orderBy: (items, { asc }) => [asc(items.position)],
-              with: {
-                options: {
-                  with: {
-                    choices: {
-                      orderBy: (choices, { asc }) => [asc(choices.position)],
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    });
+    // Fetch menu
+    const [menu] = await db
+      .select()
+      .from(menus)
+      .where(and(eq(menus.id, menuId), eq(menus.venueId, venueId), eq(menus.organizationId, orgId)))
+      .limit(1);
 
     if (!menu) {
       throw new NotFoundError('Menu');
     }
 
-    // Verify organization access
-    if (menu.venue.organizationId !== orgId) {
-      throw new NotFoundError('Menu');
+    // Fetch venue
+    const [venue] = await db
+      .select()
+      .from(venues)
+      .where(eq(venues.id, venueId))
+      .limit(1);
+
+    if (!venue) {
+      throw new NotFoundError('Venue');
     }
+
+    // Fetch sections with items
+    const sections = await db
+      .select()
+      .from(menuSections)
+      .where(and(eq(menuSections.menuId, menuId), eq(menuSections.organizationId, orgId)))
+      .orderBy(asc(menuSections.sortOrder));
+
+    const sectionIds = sections.map(s => s.id);
+
+    // Fetch items for all sections
+    const items = sectionIds.length > 0
+      ? await db
+          .select()
+          .from(menuItems)
+          .where(eq(menuItems.organizationId, orgId))
+          .orderBy(asc(menuItems.sortOrder))
+      : [];
+
+    const itemIds = items.map(i => i.id);
+
+    // Fetch options for all items
+    const options = itemIds.length > 0
+      ? await db
+          .select()
+          .from(menuItemOptions)
+          .where(eq(menuItemOptions.organizationId, orgId))
+          .orderBy(asc(menuItemOptions.sortOrder))
+      : [];
+
+    // Group items by section
+    const itemsBySection = new Map<string, typeof items>();
+    for (const item of items) {
+      const sectionItems = itemsBySection.get(item.sectionId) || [];
+      sectionItems.push(item);
+      itemsBySection.set(item.sectionId, sectionItems);
+    }
+
+    // Group options by item
+    const optionsByItem = new Map<string, typeof options>();
+    for (const option of options) {
+      const itemOptions = optionsByItem.get(option.menuItemId) || [];
+      itemOptions.push(option);
+      optionsByItem.set(option.menuItemId, itemOptions);
+    }
+
+    // Extract address fields from jsonb
+    const venueAddress = venue.address as Record<string, string> | null;
 
     // Transform data for PDF generation
     const pdfData: MenuPDFData = {
       venue: {
-        name: menu.venue.name,
-        description: menu.venue.description || undefined,
-        address: menu.venue.address || undefined,
-        phone: menu.venue.phone || undefined,
-        website: menu.venue.website || undefined,
-        logo: menu.venue.logoUrl || undefined,
+        name: venue.name,
+        description: venueAddress?.description,
+        address: venueAddress?.street,
+        phone: venueAddress?.phone,
+        website: venueAddress?.website,
+        logo: venue.logoUrl || undefined,
       },
       menu: {
         id: menu.id,
         name: menu.name,
-        description: menu.description || undefined,
-        currency: menu.currency,
-        sections: menu.sections.map(section => ({
+        description: undefined,
+        currency: 'USD',
+        sections: sections.map(section => ({
           id: section.id,
           name: section.name,
           description: section.description || undefined,
-          items: section.items.map(item => ({
+          items: (itemsBySection.get(section.id) || []).map(item => ({
             id: item.id,
             name: item.name,
             description: item.description || undefined,
-            priceAmount: item.priceAmount,
+            priceAmount: item.priceAmount ?? 0,
             imageUrl: item.imageUrl || undefined,
-            allergens: item.allergens,
-            options: item.options.map(option => ({
+            allergens: (item.allergens as string[]) || [],
+            options: (optionsByItem.get(item.id) || []).map(option => ({
               name: option.name,
-              choices: option.choices.map(choice => ({
-                name: choice.name,
-                priceModifier: choice.priceModifier,
-              })),
+              choices: [],
             })),
           })),
         })),
       },
-      theme: menu.theme ? {
-        primaryColor: menu.theme.primaryColor || undefined,
-        fontFamily: menu.theme.fontFamily || undefined,
-        headerStyle: menu.theme.headerStyle || undefined,
+      theme: menu.themeConfig ? {
+        primaryColor: (menu.themeConfig as Record<string, unknown>).primaryColor as string || undefined,
+        fontFamily: (menu.themeConfig as Record<string, unknown>).fontFamily as string || undefined,
+        headerStyle: (menu.themeConfig as Record<string, unknown>).headerStyle as string || undefined,
       } : undefined,
     };
 
     try {
       const pdfBuffer = await pdfService.generateMenuPDF(pdfData, queryOptions as PDFOptions);
-      const filename = pdfService.generateFileName(menu.venue.name, menu.name);
+      const filename = pdfService.generateFileName(venue.name, menu.name);
 
       reply
         .type('application/pdf')

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -13,7 +14,30 @@ import {
 import { useUpdateVenue, useDeleteVenue } from '@menucraft/api-client';
 import type { Venue } from '@menucraft/shared-types';
 import { toast } from '@/components/ui/use-toast';
-import { Loader2, Trash2 } from 'lucide-react';
+import { Loader2, Trash2, Phone, Globe, Clock } from 'lucide-react';
+
+type DayHours = {
+  open: string;
+  close: string;
+  closed: boolean;
+};
+
+type OpeningHours = {
+  [key: string]: DayHours;
+};
+
+const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const;
+const DAY_LABELS: Record<string, string> = {
+  monday: 'Mon',
+  tuesday: 'Tue',
+  wednesday: 'Wed',
+  thursday: 'Thu',
+  friday: 'Fri',
+  saturday: 'Sat',
+  sunday: 'Sun',
+};
+
+const DEFAULT_HOURS: DayHours = { open: '09:00', close: '22:00', closed: false };
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,6 +70,9 @@ export function EditVenueDialog({
   const [state, setState] = useState('');
   const [postalCode, setPostalCode] = useState('');
   const [timezone, setTimezone] = useState('');
+  const [phone, setPhone] = useState('');
+  const [website, setWebsite] = useState('');
+  const [openingHours, setOpeningHours] = useState<OpeningHours>({});
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const updateVenue = useUpdateVenue(orgId, venue?.id || '');
@@ -60,6 +87,20 @@ export function EditVenueDialog({
       setState(addr?.state || '');
       setPostalCode(addr?.postalCode || '');
       setTimezone(venue.timezone || 'America/New_York');
+      setPhone(venue.phone || '');
+      setWebsite(venue.website || '');
+      // Load opening hours or initialize with defaults
+      const hours = venue.openingHours as OpeningHours | null;
+      if (hours && Object.keys(hours).length > 0) {
+        setOpeningHours(hours);
+      } else {
+        // Initialize with default hours for all days
+        const defaultHours: OpeningHours = {};
+        DAYS.forEach(day => {
+          defaultHours[day] = { ...DEFAULT_HOURS };
+        });
+        setOpeningHours(defaultHours);
+      }
     }
   }, [venue]);
 
@@ -78,6 +119,9 @@ export function EditVenueDialog({
           postalCode: postalCode.trim() || undefined,
         },
         timezone: timezone || 'America/New_York',
+        phone: phone.trim() || null,
+        website: website.trim() || null,
+        openingHours: Object.keys(openingHours).length > 0 ? openingHours : null,
       },
       {
         onSuccess: () => {
@@ -189,6 +233,100 @@ export function EditVenueDialog({
                     onChange={(e) => setTimezone(e.target.value)}
                     placeholder="America/New_York"
                   />
+                </div>
+              </div>
+
+              {/* Contact Information */}
+              <div className="pt-4 border-t">
+                <h4 className="text-sm font-medium text-gray-700 mb-3">Contact Information</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-venue-phone" className="flex items-center gap-2">
+                      <Phone className="h-4 w-4" />
+                      Phone
+                    </Label>
+                    <Input
+                      id="edit-venue-phone"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="+1 555 123 4567"
+                      type="tel"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-venue-website" className="flex items-center gap-2">
+                      <Globe className="h-4 w-4" />
+                      Website
+                    </Label>
+                    <Input
+                      id="edit-venue-website"
+                      value={website}
+                      onChange={(e) => setWebsite(e.target.value)}
+                      placeholder="https://example.com"
+                      type="url"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Opening Hours */}
+              <div className="pt-4 border-t">
+                <h4 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  Opening Hours
+                </h4>
+                <div className="space-y-2">
+                  {DAYS.map((day) => {
+                    const dayHours = openingHours[day] || DEFAULT_HOURS;
+                    return (
+                      <div key={day} className="flex items-center gap-3">
+                        <span className="w-10 text-sm font-medium">{DAY_LABELS[day]}</span>
+                        <div className="flex items-center gap-2">
+                          <Checkbox
+                            id={`${day}-closed`}
+                            checked={!dayHours.closed}
+                            onCheckedChange={(checked) => {
+                              setOpeningHours(prev => ({
+                                ...prev,
+                                [day]: { ...dayHours, closed: !checked }
+                              }));
+                            }}
+                          />
+                          <Label htmlFor={`${day}-closed`} className="text-xs text-gray-500 w-12">
+                            Open
+                          </Label>
+                        </div>
+                        <Input
+                          type="time"
+                          value={dayHours.open}
+                          onChange={(e) => {
+                            setOpeningHours(prev => ({
+                              ...prev,
+                              [day]: { ...dayHours, open: e.target.value }
+                            }));
+                          }}
+                          disabled={dayHours.closed}
+                          className="w-28 h-8 text-sm"
+                        />
+                        <span className="text-gray-400">-</span>
+                        <Input
+                          type="time"
+                          value={dayHours.close}
+                          onChange={(e) => {
+                            setOpeningHours(prev => ({
+                              ...prev,
+                              [day]: { ...dayHours, close: e.target.value }
+                            }));
+                          }}
+                          disabled={dayHours.closed}
+                          className="w-28 h-8 text-sm"
+                        />
+                        {dayHours.closed && (
+                          <span className="text-xs text-gray-400 ml-2">Closed</span>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>
