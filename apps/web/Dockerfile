@@ -43,9 +43,7 @@ ARG VITE_CLERK_PUBLISHABLE_KEY
 ENV VITE_API_URL=$VITE_API_URL
 ENV VITE_CLERK_PUBLISHABLE_KEY=$VITE_CLERK_PUBLISHABLE_KEY
 
-# Build
-RUN pnpm --filter @menucraft/shared-types build
-RUN pnpm --filter @menucraft/api-client build
+# Build web app (packages are TypeScript source, bundled by Vite)
 RUN pnpm --filter @menucraft/web build
 
 # Production stage - serve with nginx

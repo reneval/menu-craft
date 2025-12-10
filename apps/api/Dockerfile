@@ -36,9 +36,7 @@ COPY packages/shared-types ./packages/shared-types
 COPY packages/config-typescript ./packages/config-typescript
 COPY packages/config-eslint ./packages/config-eslint
 
-# Build all packages
-RUN pnpm --filter @menucraft/shared-types build
-RUN pnpm --filter @menucraft/database build
+# Build API
 RUN pnpm --filter @menucraft/api build
 
 # Production stage
@@ -71,11 +69,16 @@ COPY packages/shared-types/package.json ./packages/shared-types/
 # Install production dependencies only
 RUN pnpm install --frozen-lockfile --prod
 
-# Copy built files
+# Copy built API
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
-COPY --from=builder /app/packages/database/dist ./packages/database/dist
-COPY --from=builder /app/packages/database/drizzle ./packages/database/drizzle
-COPY --from=builder /app/packages/shared-types/dist ./packages/shared-types/dist
+
+# Copy package source files (they export TypeScript directly)
+COPY --from=builder /app/packages/database/src ./packages/database/src
+COPY --from=builder /app/packages/database/drizzle.config.ts ./packages/database/
+COPY --from=builder /app/packages/shared-types/src ./packages/shared-types/src
+
+# Copy migrations if they exist
+COPY --from=builder /app/packages/database/src/migrations ./packages/database/src/migrations
 
 # Set working directory to api
 WORKDIR /app/apps/api
