@@ -1,6 +1,9 @@
 # Build stage
 FROM node:20-alpine AS builder
 
+# Install build dependencies for native modules (canvas)
+RUN apk add --no-cache python3 make g++ cairo-dev pango-dev libjpeg-turbo-dev giflib-dev librsvg-dev
+
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@9.14.4 --activate
 
@@ -31,6 +34,9 @@ RUN pnpm --filter @menucraft/api build
 
 # Production stage
 FROM node:20-alpine AS runner
+
+# Install runtime dependencies for native modules (canvas) and build tools
+RUN apk add --no-cache cairo pango libjpeg-turbo giflib librsvg python3 make g++ cairo-dev pango-dev libjpeg-turbo-dev giflib-dev librsvg-dev
 
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@9.14.4 --activate
