@@ -83,7 +83,7 @@ export class RedisCache {
   }
 
   async get<T = any>(key: string, namespace?: string): Promise<T | null> {
-    if (!this.isConnected) {
+    if (!this.isConnected || !this.client) {
       return null;
     }
 
@@ -107,7 +107,7 @@ export class RedisCache {
     value: T,
     config: CacheConfig = { ttl: 3600 }
   ): Promise<boolean> {
-    if (!this.isConnected) {
+    if (!this.isConnected || !this.client) {
       return false;
     }
 
@@ -129,7 +129,7 @@ export class RedisCache {
   }
 
   async del(key: string, namespace?: string): Promise<boolean> {
-    if (!this.isConnected) {
+    if (!this.isConnected || !this.client) {
       return false;
     }
 
@@ -144,7 +144,7 @@ export class RedisCache {
   }
 
   async exists(key: string, namespace?: string): Promise<boolean> {
-    if (!this.isConnected) {
+    if (!this.isConnected || !this.client) {
       return false;
     }
 
@@ -159,7 +159,7 @@ export class RedisCache {
   }
 
   async flush(namespace?: string): Promise<boolean> {
-    if (!this.isConnected) {
+    if (!this.isConnected || !this.client) {
       return false;
     }
 
@@ -193,7 +193,7 @@ export class RedisCache {
       connected: this.isConnected,
     };
 
-    if (this.isConnected) {
+    if (this.isConnected && this.client) {
       try {
         const info = await this.client.info('memory');
         const keyCount = await this.client.dbSize();
@@ -233,7 +233,7 @@ export class RedisCache {
 
   // Batch operations
   async mget<T = any>(keys: string[], namespace?: string): Promise<(T | null)[]> {
-    if (!this.isConnected || keys.length === 0) {
+    if (!this.isConnected || !this.client || keys.length === 0) {
       return keys.map(() => null);
     }
 
@@ -259,7 +259,7 @@ export class RedisCache {
     entries: Array<{ key: string; value: T }>,
     config: CacheConfig = { ttl: 3600 }
   ): Promise<boolean> {
-    if (!this.isConnected || entries.length === 0) {
+    if (!this.isConnected || !this.client || entries.length === 0) {
       return false;
     }
 
