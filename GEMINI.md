@@ -103,3 +103,5 @@ DATABASE_URL=postgres://menucraft:menucraft_dev@localhost:5433/menucraft
 - **API Response**: `{ success: true, data: T }` or `{ success: false, error: {...} }`
 - **State Management**: React Query for server state, Zustand for UI state
 - **Routing**: TanStack Router with file-based routes
+
+.
