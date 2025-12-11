@@ -47,7 +47,7 @@
   },
   "pnpm": {
     "overrides": {
-      "drizzle-orm": "0.37.0"
+      "drizzle-orm": "^0.45.1"
     }
   }
 }

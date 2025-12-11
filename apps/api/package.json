@@ -48,7 +48,7 @@
     "canvas": "^3.2.0",
     "deepl-node": "^1.22.0",
     "dotenv": "^16.4.7",
-    "drizzle-orm": "^0.37.0",
+    "drizzle-orm": "^0.45.1",
     "fastify": "^5.1.0",
     "fastify-plugin": "^4.5.0",
     "geoip-lite": "^1.4.10",
@@ -64,7 +64,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "drizzle-kit": "^0.37.0",
+    "drizzle-kit": "^0.31.8",
     "@menucraft/config-eslint": "workspace:*",
     "@menucraft/config-typescript": "workspace:*",
     "@types/geoip-lite": "^1.4.4",
