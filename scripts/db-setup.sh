@@ -16,7 +16,7 @@ export $(grep -v '^#' .env | xargs)
 # Check if database is accessible
 if ! docker exec menucraft-db pg_isready -U menucraft -d menucraft > /dev/null 2>&1; then
   echo "❌ Database is not ready. Make sure Docker containers are running:"
-  echo "   docker-compose up -d"
+  echo "   docker compose up -d"
   exit 1
 fi
 

@@ -1,6 +1,4 @@
 # Production docker-compose
-version: '3.8'
-
 services:
   api:
     build:
@@ -11,13 +9,30 @@ services:
       - NODE_ENV=production
       - PORT=3000
       - DATABASE_URL=postgresql://menucraft:${DB_PASSWORD}@postgres:5432/menucraft
+      - REDIS_URL=redis://redis:6379
       - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
+      - CLERK_WEBHOOK_SECRET=${CLERK_WEBHOOK_SECRET}
       - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
       - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      - R2_ACCOUNT_ID=${R2_ACCOUNT_ID}
+      - R2_ACCESS_KEY_ID=${R2_ACCESS_KEY_ID}
+      - R2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY}
+      - R2_BUCKET_NAME=${R2_BUCKET_NAME}
+      - R2_PUBLIC_URL=${R2_PUBLIC_URL}
+      - DEEPL_API_KEY=${DEEPL_API_KEY}
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - EMAIL_FROM=${EMAIL_FROM}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - API_URL=${API_URL}
+      - WEB_URL=${WEB_URL}
+      - PUBLIC_URL=${PUBLIC_URL}
+      - JWT_SECRET=${JWT_SECRET}
     ports:
       - "3000:3000"
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     restart: unless-stopped
     networks:
@@ -28,11 +43,26 @@ services:
       context: .
       dockerfile: apps/web/Dockerfile
       args:
-        - VITE_API_URL=${VITE_API_URL:-http://localhost:3000}
+        - VITE_API_URL=${VITE_API_URL}
         - VITE_CLERK_PUBLISHABLE_KEY=${VITE_CLERK_PUBLISHABLE_KEY}
     container_name: menucraft-web
     ports:
       - "80:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+    networks:
+      - menucraft-network
+
+  public:
+    build:
+      context: .
+      dockerfile: apps/public/Dockerfile
+      args:
+        - VITE_API_URL=${VITE_API_URL}
+    container_name: menucraft-public
+    ports:
+      - "8080:80"
     depends_on:
       - api
     restart: unless-stopped
