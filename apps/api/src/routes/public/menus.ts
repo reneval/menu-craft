@@ -4,9 +4,8 @@
 
 import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { db } from '@menucraft/database';
+import { db, eq, and, isNull, asc, desc } from '@menucraft/database';
 import { menus, menuSections, menuItems, menuItemOptions, venues, menuSchedules } from '@menucraft/database/schema';
-import { eq, and, isNull, asc, desc } from 'drizzle-orm';
 import { NotFoundError } from '../../utils/errors.js';
 
 const VenueSlugParamsSchema = z.object({
