@@ -88,13 +88,13 @@ WORKDIR /app/apps/api
 
 # Environment variables
 ENV NODE_ENV=production
-ENV PORT=3000
+ENV PORT=4000
 ENV HOST=0.0.0.0
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://localhost:4000/health || exit 1
 
-EXPOSE 3000
+EXPOSE 4000
 
 CMD ["tsx", "dist/index.js"]
