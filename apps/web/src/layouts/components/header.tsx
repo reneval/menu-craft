@@ -1,6 +1,6 @@
 import { Bell, LogOut, Settings, User } from 'lucide-react';
-import { useUser, useClerk } from '@clerk/clerk-react';
-import { Link, useNavigate } from '@tanstack/react-router';
+import { Link } from '@tanstack/react-router';
+import { useAuth, useUser } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -13,16 +13,11 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export function Header() {
-  const { user } = useUser();
-  const { signOut } = useClerk();
-  const navigate = useNavigate();
-
-  const handleSignOut = () => {
-    signOut(() => navigate({ to: '/' }));
-  };
+  const { signOut } = useAuth();
+  const { user, firstName, lastName, fullName, imageUrl, primaryEmailAddress } = useUser();
 
   const initials = user
-    ? `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase() || user.primaryEmailAddress?.emailAddress?.[0]?.toUpperCase()
+    ? `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase() || primaryEmailAddress?.emailAddress?.[0]?.toUpperCase()
     : 'U';
 
   return (
@@ -39,7 +34,7 @@ export function Header() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-9 w-9 rounded-full">
               <Avatar className="h-9 w-9">
-                <AvatarImage src={user?.imageUrl} alt={user?.fullName || ''} />
+                <AvatarImage src={imageUrl || undefined} alt={fullName || ''} />
                 <AvatarFallback>{initials}</AvatarFallback>
               </Avatar>
             </Button>
@@ -48,10 +43,10 @@ export function Header() {
             <DropdownMenuLabel>
               <div className="flex flex-col space-y-1">
                 <p className="text-sm font-medium leading-none">
-                  {user?.fullName || 'User'}
+                  {fullName || 'User'}
                 </p>
                 <p className="text-xs leading-none text-muted-foreground">
-                  {user?.primaryEmailAddress?.emailAddress}
+                  {primaryEmailAddress?.emailAddress}
                 </p>
               </div>
             </DropdownMenuLabel>
@@ -69,7 +64,7 @@ export function Header() {
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
+            <DropdownMenuItem onClick={signOut} className="cursor-pointer">
               <LogOut className="mr-2 h-4 w-4" />
               Sign out
             </DropdownMenuItem>

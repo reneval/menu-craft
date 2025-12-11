@@ -1,26 +1,17 @@
 import { Link } from '@tanstack/react-router';
 import { useTrialStatus, useSubscription } from '@menucraft/api-client';
-import { useAuth as useClerkAuth } from '@clerk/clerk-react';
+import { useOrganizationStore } from '@/store/organization';
 import { Clock, Sparkles, AlertTriangle, X } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { env } from '@/config/env';
-
-// Safe useAuth that works when Clerk isn't configured
-function useSafeAuth() {
-  if (!env.CLERK_PUBLISHABLE_KEY) {
-    return { orgId: undefined };
-  }
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  return useClerkAuth();
-}
 
 interface UpgradeBannerProps {
   className?: string;
 }
 
 export function UpgradeBanner({ className = '' }: UpgradeBannerProps) {
-  const { orgId } = useSafeAuth();
+  const { currentOrganization } = useOrganizationStore();
+  const orgId = currentOrganization?.id;
   const [dismissed, setDismissed] = useState(false);
 
   const { data: trialStatus } = useTrialStatus(orgId || '');
@@ -136,7 +127,8 @@ export function UpgradePrompt({
   feature: string;
   className?: string;
 }) {
-  const { orgId } = useSafeAuth();
+  const { currentOrganization } = useOrganizationStore();
+  const orgId = currentOrganization?.id;
 
   if (!orgId) return null;
 

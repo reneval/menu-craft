@@ -12,10 +12,10 @@ import { requireAuth } from '../../plugins/auth.js';
 export async function userRoutes(app: FastifyInstance) {
   // Get current user profile
   app.get('/me', { preHandler: requireAuth }, async (request) => {
-    const clerkUserId = request.auth!.userId;
+    const userId = request.auth!.userId;
 
     const user = await db.query.users.findFirst({
-      where: eq(users.clerkUserId, clerkUserId),
+      where: eq(users.id, userId),
     });
 
     if (!user) {
@@ -27,7 +27,7 @@ export async function userRoutes(app: FastifyInstance) {
 
   // Update current user profile (name)
   app.patch('/me', { preHandler: requireAuth }, async (request) => {
-    const clerkUserId = request.auth!.userId;
+    const userId = request.auth!.userId;
     const body = validate(UpdateUserProfileSchema, request.body);
 
     const [user] = await db
@@ -36,7 +36,7 @@ export async function userRoutes(app: FastifyInstance) {
         ...body,
         updatedAt: new Date(),
       })
-      .where(eq(users.clerkUserId, clerkUserId))
+      .where(eq(users.id, userId))
       .returning();
 
     if (!user) {
@@ -48,12 +48,12 @@ export async function userRoutes(app: FastifyInstance) {
 
   // Update current user preferences
   app.patch('/me/preferences', { preHandler: requireAuth }, async (request) => {
-    const clerkUserId = request.auth!.userId;
+    const userId = request.auth!.userId;
     const body = validate(UpdateUserPreferencesSchema, request.body);
 
     // First get the current user to merge preferences
     const currentUser = await db.query.users.findFirst({
-      where: eq(users.clerkUserId, clerkUserId),
+      where: eq(users.id, userId),
     });
 
     if (!currentUser) {
@@ -80,7 +80,7 @@ export async function userRoutes(app: FastifyInstance) {
         preferences: newPreferences,
         updatedAt: new Date(),
       })
-      .where(eq(users.clerkUserId, clerkUserId))
+      .where(eq(users.id, userId))
       .returning();
 
     if (!user) {
