@@ -1,5 +1,40 @@
-# Production docker-compose
+# Production docker-compose with Traefik reverse proxy
 services:
+  traefik:
+    image: traefik:v3.2
+    container_name: menucraft-traefik
+    command:
+      - "--api.dashboard=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+      # Redirect HTTP to HTTPS
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik_certs:/letsencrypt
+    restart: unless-stopped
+    networks:
+      - menucraft-network
+    labels:
+      - "traefik.enable=true"
+      # Dashboard (optional, remove in production if not needed)
+      - "traefik.http.routers.dashboard.rule=Host(`traefik.${DOMAIN}`)"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.entrypoints=websecure"
+      - "traefik.http.routers.dashboard.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.dashboard.middlewares=dashboard-auth"
+      - "traefik.http.middlewares.dashboard-auth.basicauth.users=${TRAEFIK_DASHBOARD_AUTH}"
+
   api:
     build:
       context: .
@@ -27,8 +62,6 @@ services:
       - WEB_URL=${WEB_URL}
       - PUBLIC_URL=${PUBLIC_URL}
       - JWT_SECRET=${JWT_SECRET}
-    ports:
-      - "3000:3000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -37,6 +70,12 @@ services:
     restart: unless-stopped
     networks:
       - menucraft-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api.rule=Host(`api.${DOMAIN}`)"
+      - "traefik.http.routers.api.entrypoints=websecure"
+      - "traefik.http.routers.api.tls.certresolver=letsencrypt"
+      - "traefik.http.services.api.loadbalancer.server.port=3000"
 
   web:
     build:
@@ -46,13 +85,17 @@ services:
         - VITE_API_URL=${VITE_API_URL}
         - VITE_CLERK_PUBLISHABLE_KEY=${VITE_CLERK_PUBLISHABLE_KEY}
     container_name: menucraft-web
-    ports:
-      - "80:80"
     depends_on:
       - api
     restart: unless-stopped
     networks:
       - menucraft-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.web.rule=Host(`app.${DOMAIN}`)"
+      - "traefik.http.routers.web.entrypoints=websecure"
+      - "traefik.http.routers.web.tls.certresolver=letsencrypt"
+      - "traefik.http.services.web.loadbalancer.server.port=80"
 
   public:
     build:
@@ -61,13 +104,17 @@ services:
       args:
         - VITE_API_URL=${VITE_API_URL}
     container_name: menucraft-public
-    ports:
-      - "8080:80"
     depends_on:
       - api
     restart: unless-stopped
     networks:
       - menucraft-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.public.rule=Host(`menu.${DOMAIN}`)"
+      - "traefik.http.routers.public.entrypoints=websecure"
+      - "traefik.http.routers.public.tls.certresolver=letsencrypt"
+      - "traefik.http.services.public.loadbalancer.server.port=80"
 
   postgres:
     image: postgres:16-alpine
@@ -104,6 +151,7 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  traefik_certs:
 
 networks:
   menucraft-network:
