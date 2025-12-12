@@ -22,9 +22,12 @@ function ForgotPasswordPage() {
     setIsLoading(true);
 
     try {
-      const result = await authClient.forgetPassword({
+      // Use type assertion - forgetPassword method exists when sendResetPassword is configured on server
+      const result = await (authClient as unknown as {
+        forgetPassword: (opts: { email: string; redirectTo: string }) => Promise<{ error: { message: string } | null }>;
+      }).forgetPassword({
         email,
-        redirectTo: '/auth/reset-password',
+        redirectTo: `${window.location.origin}/auth/reset-password`,
       });
 
       if (result.error) {

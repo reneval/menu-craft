@@ -10,8 +10,8 @@ interface UpgradeBannerProps {
 }
 
 export function UpgradeBanner({ className = '' }: UpgradeBannerProps) {
-  const { currentOrganization } = useOrganizationStore();
-  const orgId = currentOrganization?.id;
+  const currentOrgId = useOrganizationStore((state) => state.currentOrgId);
+  const orgId = currentOrgId;
   const [dismissed, setDismissed] = useState(false);
 
   const { data: trialStatus } = useTrialStatus(orgId || '');
@@ -127,8 +127,8 @@ export function UpgradePrompt({
   feature: string;
   className?: string;
 }) {
-  const { currentOrganization } = useOrganizationStore();
-  const orgId = currentOrganization?.id;
+  const currentOrgId = useOrganizationStore((state) => state.currentOrgId);
+  const orgId = currentOrgId;
 
   if (!orgId) return null;
 

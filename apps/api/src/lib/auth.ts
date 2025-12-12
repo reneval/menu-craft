@@ -20,6 +20,17 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: false, // Set to true in production
+    sendResetPassword: async ({ user, url }) => {
+      // TODO: Use your email service (Resend) to send the reset password email
+      // For now, log to console - replace with actual email sending
+      console.log(`[Password Reset] Send email to ${user.email} with link: ${url}`);
+      // Example with Resend:
+      // await sendEmail({
+      //   to: user.email,
+      //   subject: 'Reset your password',
+      //   html: `<p>Click <a href="${url}">here</a> to reset your password.</p>`,
+      // });
+    },
   },
 
   socialProviders: {
@@ -57,9 +68,6 @@ export const auth = betterAuth({
     },
   },
 
-  advanced: {
-    generateId: () => crypto.randomUUID(),
-  },
 });
 
 export type Auth = typeof auth;
