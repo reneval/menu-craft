@@ -28,7 +28,7 @@ services:
       - PUBLIC_URL=${PUBLIC_URL}
       - JWT_SECRET=${JWT_SECRET}
     ports:
-      - "3000:3000"
+      - "3002:3002"
     depends_on:
       postgres:
         condition: service_healthy
@@ -47,7 +47,7 @@ services:
         - VITE_CLERK_PUBLISHABLE_KEY=${VITE_CLERK_PUBLISHABLE_KEY}
     container_name: menucraft-web
     ports:
-      - "3001:3000"
+      - "3001:3001"
     depends_on:
       - api
     restart: unless-stopped
