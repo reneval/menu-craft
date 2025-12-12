@@ -32,19 +32,21 @@ ENV VITE_API_URL=$VITE_API_URL
 # Build public app
 RUN pnpm --filter @menucraft/public build
 
-# Production stage - serve with nginx
-FROM nginx:alpine AS runner
+# Production stage - serve with lightweight static server
+FROM node:20-alpine AS runner
 
-# Copy nginx config
-COPY apps/public/nginx.conf /etc/nginx/conf.d/default.conf
+RUN npm install -g serve@14
+
+WORKDIR /app
 
 # Copy built files
-COPY --from=builder /app/apps/public/dist /usr/share/nginx/html
+COPY --from=builder /app/apps/public/dist ./dist
 
-# Health check
+ENV NODE_ENV=production
+
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:80/health || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/ || exit 1
 
-EXPOSE 80
+EXPOSE 3000
 
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["serve", "-s", "dist", "-l", "3000"]

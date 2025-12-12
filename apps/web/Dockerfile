@@ -1,18 +1,6 @@
 # Build stage
 FROM node:20-slim AS builder
 
-# Install build dependencies for native modules (canvas)
-RUN apt-get update && apt-get install -y \
-    python3 \
-    make \
-    g++ \
-    libcairo2-dev \
-    libpango1.0-dev \
-    libjpeg-dev \
-    libgif-dev \
-    librsvg2-dev \
-    && rm -rf /var/lib/apt/lists/*
-
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@9.14.4 --activate
 
@@ -43,22 +31,24 @@ ARG VITE_CLERK_PUBLISHABLE_KEY
 ENV VITE_API_URL=$VITE_API_URL
 ENV VITE_CLERK_PUBLISHABLE_KEY=$VITE_CLERK_PUBLISHABLE_KEY
 
-# Build web app (packages are TypeScript source, bundled by Vite)
+# Build web app
 RUN pnpm --filter @menucraft/web build
 
-# Production stage - serve with nginx
-FROM nginx:alpine AS runner
+# Production stage - serve with lightweight static server
+FROM node:20-alpine AS runner
 
-# Copy nginx config
-COPY apps/web/nginx.conf /etc/nginx/conf.d/default.conf
+RUN npm install -g serve@14
+
+WORKDIR /app
 
 # Copy built files
-COPY --from=builder /app/apps/web/dist /usr/share/nginx/html
+COPY --from=builder /app/apps/web/dist ./dist
 
-# Health check
+ENV NODE_ENV=production
+
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:80/health || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/ || exit 1
 
-EXPOSE 80
+EXPOSE 3000
 
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["serve", "-s", "dist", "-l", "3000"]
