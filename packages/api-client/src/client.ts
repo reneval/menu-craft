@@ -2,7 +2,6 @@ import type { ApiResponse, ApiError as ApiErrorType } from '@menucraft/shared-ty
 
 export interface ApiClientConfig {
   baseUrl: string;
-  getAuthToken?: () => string | null | Promise<string | null>;
 }
 
 export class ApiError extends Error {
@@ -31,19 +30,10 @@ export class ApiClient {
     return this.config.baseUrl;
   }
 
-  private async getHeaders(): Promise<HeadersInit> {
-    const headers: HeadersInit = {
+  private getHeaders(): HeadersInit {
+    return {
       'Content-Type': 'application/json',
     };
-
-    if (this.config.getAuthToken) {
-      const token = await this.config.getAuthToken();
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-    }
-
-    return headers;
   }
 
   async request<T>(
@@ -52,7 +42,7 @@ export class ApiClient {
     body?: unknown
   ): Promise<T> {
     const url = `${this.config.baseUrl}${path}`;
-    const headers = await this.getHeaders();
+    const headers = this.getHeaders();
 
     // For POST/PATCH with no body, send empty object to satisfy Fastify's JSON parser
     // This is needed because we always set Content-Type: application/json
@@ -62,6 +52,7 @@ export class ApiClient {
       method,
       headers,
       body: requestBody !== undefined ? JSON.stringify(requestBody) : undefined,
+      credentials: 'include', // Send cookies for authentication
     });
 
     const data = await response.json() as ApiResponse<T>;

@@ -1,5 +1,6 @@
 import { type FastifyInstance } from 'fastify';
 import { healthRoutes } from './health.js';
+import { authRoutes } from './auth/index.js';
 import { organizationRoutes } from './organizations/index.js';
 import { venueRoutes } from './venues/index.js';
 import { menuRoutes } from './menus/index.js';
@@ -45,6 +46,9 @@ export async function registerRoutes(app: FastifyInstance) {
 
   // Billing webhook (no auth, raw body)
   await app.register(billingWebhookRoute, { prefix: '/api/billing' });
+
+  // Auth routes (better-auth endpoints)
+  await app.register(authRoutes, { prefix: '/api' });
 
   // Public routes (no auth)
   await app.register(publicRoutes, { prefix: '/public' });

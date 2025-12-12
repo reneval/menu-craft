@@ -4,6 +4,7 @@ export * from './enums';
 // Tables
 export * from './organizations';
 export * from './users';
+export * from './auth';
 export * from './venues';
 export * from './menus';
 export * from './menu-sections';

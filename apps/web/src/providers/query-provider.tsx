@@ -1,13 +1,11 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { initApiClient } from '@menucraft/api-client';
-import { useAuth } from '@clerk/clerk-react';
-import { type ReactNode, useState, useEffect } from 'react';
+import { type ReactNode, useState } from 'react';
 import { env } from '@/config/env';
 
-// Initialize API client with config (no auth token initially)
+// Initialize API client with config (uses cookies for auth)
 initApiClient({
   baseUrl: env.API_URL,
-  getAuthToken: () => null,
 });
 
 interface QueryProviderProps {
@@ -28,19 +26,4 @@ export function QueryProvider({ children }: QueryProviderProps) {
   );
 
   return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
-}
-
-// Component to reinitialize API client with auth token after Clerk loads
-// Only use this inside ClerkProvider
-export function ApiClientWithAuth({ children }: { children: ReactNode }) {
-  const { getToken } = useAuth();
-
-  useEffect(() => {
-    initApiClient({
-      baseUrl: env.API_URL,
-      getAuthToken: () => getToken(),
-    });
-  }, [getToken]);
-
-  return <>{children}</>;
 }

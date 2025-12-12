@@ -1,20 +1,11 @@
-import { ClerkProvider } from '@clerk/clerk-react';
 import { type ReactNode } from 'react';
-import { env } from '@/config/env';
 
 interface AuthProviderProps {
   children: ReactNode;
 }
 
+// Better-auth uses cookie-based sessions, no provider wrapper needed
+// This component exists for backward compatibility with the provider structure
 export function AuthProvider({ children }: AuthProviderProps) {
-  // If no Clerk key, just render children (dev mode without auth)
-  if (!env.CLERK_PUBLISHABLE_KEY) {
-    return <>{children}</>;
-  }
-
-  return (
-    <ClerkProvider publishableKey={env.CLERK_PUBLISHABLE_KEY}>
-      {children}
-    </ClerkProvider>
-  );
+  return <>{children}</>;
 }

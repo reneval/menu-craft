@@ -18,9 +18,9 @@ import {
   useUpdatePreferences,
   COMMON_LANGUAGES,
 } from '@menucraft/api-client';
-import { useUser } from '@clerk/clerk-react';
+import { useUser } from '@/hooks/use-auth';
 import { useState, useEffect } from 'react';
-import { Loader2, User, Globe, Bell, Save } from 'lucide-react';
+import { Loader2, User as UserIcon, Globe, Bell, Save } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 
 export const Route = createFileRoute('/_dashboard/profile/')({
@@ -47,7 +47,7 @@ const COMMON_TIMEZONES = [
 ];
 
 function ProfilePage() {
-  const { user: clerkUser } = useUser();
+  const { user: authUser, firstName: authFirstName, lastName: authLastName, fullName, imageUrl, primaryEmailAddress } = useUser();
   const { data: user, isLoading } = useCurrentUser();
   const updateProfile = useUpdateProfile();
   const updatePreferences = useUpdatePreferences();
@@ -162,9 +162,9 @@ function ProfilePage() {
     );
   }
 
-  const initials = clerkUser
-    ? `${clerkUser.firstName?.[0] || ''}${clerkUser.lastName?.[0] || ''}`.toUpperCase() ||
-      clerkUser.primaryEmailAddress?.emailAddress?.[0]?.toUpperCase()
+  const initials = authUser
+    ? `${authFirstName?.[0] || ''}${authLastName?.[0] || ''}`.toUpperCase() ||
+      primaryEmailAddress?.emailAddress?.[0]?.toUpperCase()
     : 'U';
 
   return (
@@ -179,7 +179,7 @@ function ProfilePage() {
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
-              <User className="h-5 w-5 text-muted-foreground" />
+              <UserIcon className="h-5 w-5 text-muted-foreground" />
               <div>
                 <CardTitle>Basic Information</CardTitle>
                 <CardDescription>Update your personal details</CardDescription>
@@ -190,13 +190,13 @@ function ProfilePage() {
             {/* Avatar */}
             <div className="flex items-center gap-4">
               <Avatar className="h-20 w-20">
-                <AvatarImage src={clerkUser?.imageUrl} alt={clerkUser?.fullName || ''} />
+                <AvatarImage src={imageUrl || undefined} alt={fullName || ''} />
                 <AvatarFallback className="text-xl">{initials}</AvatarFallback>
               </Avatar>
               <div>
                 <p className="text-sm font-medium">Profile Photo</p>
                 <p className="text-xs text-muted-foreground">
-                  Managed through your Clerk account
+                  Avatar synced with your Google account
                 </p>
               </div>
             </div>
@@ -228,12 +228,12 @@ function ProfilePage() {
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
-                value={clerkUser?.primaryEmailAddress?.emailAddress || user?.email || ''}
+                value={primaryEmailAddress?.emailAddress || user?.email || ''}
                 disabled
                 className="bg-muted"
               />
               <p className="text-xs text-muted-foreground">
-                Email address is managed through your Clerk account
+                Email address cannot be changed
               </p>
             </div>
 
