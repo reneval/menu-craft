@@ -28,7 +28,7 @@ services:
       - PUBLIC_URL=${PUBLIC_URL}
       - JWT_SECRET=${JWT_SECRET}
     ports:
-      - "3000:3002"
+      - "4000:3002"
     depends_on:
       postgres:
         condition: service_healthy
