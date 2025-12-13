@@ -76,6 +76,8 @@ services:
       POSTGRES_USER: menucraft
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: menucraft
+    ports:
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:

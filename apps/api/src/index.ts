@@ -4,7 +4,7 @@ startTelemetry();
 
 import 'dotenv/config';
 import { buildApp } from './app.js';
-import { env } from './config/env.js';
+import { env } from './config';
 import { redisCache } from './lib/redis-cache.js';
 
 async function main() {
