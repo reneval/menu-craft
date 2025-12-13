@@ -103,6 +103,19 @@ services:
     networks:
       - menucraft-network
 
+  adminer:
+    image: adminer:latest
+    container_name: menucraft-adminer
+    ports:
+      - "4003:8080"
+    environment:
+      - ADMINER_DEFAULT_SERVER=postgres
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    networks:
+      - menucraft-network
+
 volumes:
   postgres_data:
   redis_data:
