@@ -47,8 +47,8 @@ COPY --from=builder /app/apps/web/dist ./dist
 ENV NODE_ENV=production
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/ || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://localhost:4001/ || exit 1
 
-EXPOSE 3000
+EXPOSE 4001
 
-CMD ["serve", "-s", "dist", "-l", "3000"]
+CMD ["serve", "-s", "dist", "-l", "4001"]
